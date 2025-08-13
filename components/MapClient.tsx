@@ -26,6 +26,21 @@ const redIcon = typeof window !== 'undefined' ? new L.Icon({
   className: 'red-marker'
 }) : null;
 
+// Function to create numbered marker icons
+const createNumberedIcon = (number: number) => {
+  if (typeof window === 'undefined') return null;
+  
+  return L.divIcon({
+    html: `<div class="numbered-marker">
+             <div class="marker-number">${number}</div>
+           </div>`,
+    className: 'numbered-marker-container',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34]
+  });
+};
+
 // Add CSS for red marker and circle tooltip
 if (typeof window !== 'undefined') {
   const style = document.createElement('style');
@@ -45,6 +60,34 @@ if (typeof window !== 'undefined') {
     }
     .circle-tooltip::before {
       border-top-color: rgba(59, 130, 246, 0.9) !important;
+    }
+    .numbered-marker-container {
+      background: none !important;
+      border: none !important;
+    }
+    .numbered-marker {
+      width: 25px;
+      height: 41px;
+      background-image: url('/leaflet/marker-icon.png');
+      background-size: contain;
+      position: relative;
+    }
+    .marker-number {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      color: #1f2937;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      border: 1px solid #3b82f6;
     }
   `;
   if (!document.head.querySelector('style[data-red-marker]')) {
@@ -146,11 +189,18 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
         </Marker>
       )}
 
-      {places.map((p) => (
-        <Marker key={`${p.type}-${p.id}`} position={[p.lat, p.lon] as [number, number]}>
+      {places.map((p, index) => (
+        <Marker 
+          key={`${p.type}-${p.id}`} 
+          position={[p.lat, p.lon] as [number, number]}
+          icon={createNumberedIcon(index + 1) || undefined}
+        >
           <Popup>
             <div>
-              <strong>{p.tags.name || `${p.tags.amenity || p.tags.tourism || p.tags['place'] || 'POI'}`}</strong>
+              <strong>
+                <span style={{ marginRight: 8, color: '#3b82f6' }}>{index + 1}.</span>
+                {p.tags.name || `${p.tags.amenity || p.tags.tourism || p.tags['place'] || 'POI'}`}
+              </strong>
               <div style={{ fontSize: 12 }}>
                 {(() => {
                   const tags = Object.entries(p.tags || {});
