@@ -44,6 +44,7 @@ export default function Page() {
   const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<string>('');
   const [selectedTagsInCategory, setSelectedTagsInCategory] = useState<Record<string, string[]>>({});
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
+  const [numberOfPlaces, setNumberOfPlaces] = useState(20);
 
   const resetAppToInitialState = () => {
     setPlaces([]);
@@ -97,7 +98,7 @@ export default function Page() {
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, tags })
+          body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces })
         });
         const data = await res.json();
         setPlaces(data.places || []);
@@ -265,7 +266,7 @@ export default function Page() {
           const res = await fetch('/api/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat, lon, tags: limitedTags })
+            body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces })
           });
           const data = await res.json();
           setPlaces(data.places || []);
@@ -303,7 +304,7 @@ export default function Page() {
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, tags: limitedTags })
+          body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces })
         });
         const data = await res.json();
         setPlaces(data.places || []);
@@ -336,6 +337,28 @@ export default function Page() {
             <button onClick={handleButton3} className="px-3 py-2 rounded bg-green-600 text-white hover:cursor-pointer">
               Anywhere: Find anything specific
             </button>
+            
+            {/* Number of places slider */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Number of places to find: {numberOfPlaces}
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="40"
+                value={numberOfPlaces}
+                onChange={(e) => setNumberOfPlaces(parseInt(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb 100%)`
+                }}
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1</span>
+                <span>40</span>
+              </div>
+            </div>
           </div>
           
         </div>

@@ -20,6 +20,18 @@ interface OverpassElement {
   tags?: Record<string, string>;
 }
 
+// Type for API response
+interface SearchResult {
+  places: {
+    id: number;
+    type: string;
+    lat: number;
+    lon: number;
+    tags: Record<string, string>;
+    distance_m: number;
+  }[];
+}
+
 // Helper: Haversine distance
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const toRad = (v: number) => (v * Math.PI) / 180;
@@ -36,7 +48,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { lat, lon, tags } = body as { lat: number; lon: number; tags: string[] };
+    const { lat, lon, tags, limit = 20 } = body as { lat: number; lon: number; tags: string[]; limit?: number };
     if (typeof lat !== 'number' || typeof lon !== 'number') {
       return NextResponse.json({ error: 'lat and lon required' }, { status: 400 });
     }
@@ -45,7 +57,13 @@ export async function POST(req: Request) {
     const cachedResult = overpassCache.get(lat, lon, tags);
     if (cachedResult) {
       console.log('Returning cached result');
-      return NextResponse.json(cachedResult);
+      // Apply limit to cached result
+      const result = cachedResult as SearchResult;
+      const limitedResult = {
+        ...result,
+        places: result.places.slice(0, limit)
+      };
+      return NextResponse.json(limitedResult);
     }
 
     // Build Overpass QL: search for nodes/ways/relations with the provided tags within radius
@@ -132,8 +150,8 @@ export async function POST(req: Request) {
         const withDist = normalized.map((e) => ({ ...e, distance: haversineDistance(lat, lon, e.lat!, e.lon!) }));
         withDist.sort((a, b) => a.distance - b.distance);
 
-        // Choose up to 20 or all within 5km — since our query already limited to 5km, we simply slice 20
-        const chosen = withDist.slice(0, 20).map((e) => ({ id: e.id, type: e.type, lat: e.lat, lon: e.lon, tags: e.tags, distance_m: Math.round(e.distance) }));
+        // Choose up to the specified limit or all within radius
+        const chosen = withDist.slice(0, limit).map((e) => ({ id: e.id, type: e.type, lat: e.lat, lon: e.lon, tags: e.tags, distance_m: Math.round(e.distance) }));
 
         const result = { places: chosen };
         
