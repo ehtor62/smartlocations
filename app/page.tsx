@@ -45,6 +45,7 @@ export default function Page() {
   const [selectedTagsInCategory, setSelectedTagsInCategory] = useState<Record<string, string[]>>({});
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [numberOfPlaces, setNumberOfPlaces] = useState(20);
+  const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
 
   const resetAppToInitialState = () => {
     setPlaces([]);
@@ -52,6 +53,7 @@ export default function Page() {
     setPanelOpen(false);
     setSidebarMinimized(false);
     setLoading(false);
+    setIsSearching(false); // Reset search state
     setHasSearched(false);
     setModalVisible(true);
     setCategoryModalVisible(false);
@@ -78,7 +80,14 @@ export default function Page() {
       alert('Geolocation not available');
       return;
     }
+    
+    if (isSearching) {
+      alert('A search is already in progress. Please wait.');
+      return;
+    }
+    
     setLoading(true);
+    setIsSearching(true);
     setModalVisible(false); // Hide modal when Button 1 is clicked
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const lat = pos.coords.latitude;
@@ -98,19 +107,28 @@ export default function Page() {
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces })
+          body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces }),
+          signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
         });
         const data = await res.json();
         setPlaces(data.places || []);
         setPanelOpen(true);
       } catch (err) {
         console.error(err);
-        alert('Search failed');
+        if (err instanceof Error && err.name === 'TimeoutError') {
+          alert('Search timed out. The server might be busy. Please try again.');
+        } else if (err instanceof Error && err.message.includes('timeout')) {
+          alert('Search timed out. Please try again or search for fewer categories.');
+        } else {
+          alert('Search failed. Please try again.');
+        }
       } finally {
         setLoading(false);
+        setIsSearching(false);
       }
     }, (err) => {
       setLoading(false);
+      setIsSearching(false);
       alert('Geolocation permission denied or error: ' + err.message);
     }, { enableHighAccuracy: true });
   };
@@ -231,7 +249,13 @@ export default function Page() {
       return;
     }
     
+    if (isSearching) {
+      alert('A search is already in progress. Please wait.');
+      return;
+    }
+    
     setLoading(true);
+    setIsSearching(true);
     setCategoryModalVisible(false);
 
     if (searchMode === 'current') {
@@ -257,23 +281,30 @@ export default function Page() {
             allTags.push(...categoryTags.map(tag => tag.replace(':', '=')));
           });
 
-          // Limit to maximum 50 tags to prevent overly complex queries that slow down the API
-          const limitedTags = allTags.slice(0, 50);
-          if (allTags.length > 50) {
-            console.log(`Limited search from ${allTags.length} to 50 tags for better performance`);
+          // Limit to maximum 30 tags to prevent overly complex queries that slow down the API
+          const limitedTags = allTags.slice(0, 30);
+          if (allTags.length > 30) {
+            console.log(`Limited search from ${allTags.length} to 30 tags for better performance`);
           }
 
           const res = await fetch('/api/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces })
+            body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces }),
+            signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
           });
           const data = await res.json();
           setPlaces(data.places || []);
           setPanelOpen(true);
         } catch (err) {
           console.error(err);
-          alert('Search failed');
+          if (err instanceof Error && err.name === 'TimeoutError') {
+            alert('Search timed out. The server might be busy. Please try again.');
+          } else if (err instanceof Error && err.message.includes('timeout')) {
+            alert('Search timed out. Please try again or search for fewer categories.');
+          } else {
+            alert('Search failed. Please try again.');
+          }
         } finally {
           setLoading(false);
         }
@@ -295,25 +326,33 @@ export default function Page() {
           allTags.push(...categoryTags.map(tag => tag.replace(':', '=')));
         });
 
-        // Limit to maximum 50 tags to prevent overly complex queries that slow down the API
-        const limitedTags = allTags.slice(0, 50);
-        if (allTags.length > 50) {
-          console.log(`Limited search from ${allTags.length} to 50 tags for better performance`);
+        // Limit to maximum 30 tags to prevent overly complex queries that slow down the API
+        const limitedTags = allTags.slice(0, 30);
+        if (allTags.length > 30) {
+          console.log(`Limited search from ${allTags.length} to 30 tags for better performance`);
         }
 
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces })
+          body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces }),
+          signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
         });
         const data = await res.json();
         setPlaces(data.places || []);
         setPanelOpen(true);
       } catch (err) {
         console.error(err);
-        alert('Search failed');
+        if (err instanceof Error && err.name === 'TimeoutError') {
+          alert('Search timed out. The server might be busy. Please try again.');
+        } else if (err instanceof Error && err.message.includes('timeout')) {
+          alert('Search timed out. Please try again or search for fewer categories.');
+        } else {
+          alert('Search failed. Please try again.');
+        }
       } finally {
         setLoading(false);
+        setIsSearching(false);
       }
     }
   };

@@ -74,17 +74,17 @@ export async function POST(req: Request) {
     }).join('\n');
 
     const query = `
-      [out:json][timeout:30];
+      [out:json][timeout:45];
       (
         ${tagFilters}
       );
       out center;`;
 
-    // List of Overpass API endpoints for fallback
+    // List of Overpass API endpoints for fallback (reordered by typical response time)
     const overpassEndpoints = [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+      'https://overpass.kumi.systems/api/interpreter', // Usually fastest
+      'https://overpass-api.de/api/interpreter',       // Official but can be slower
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter' // Backup
     ];
 
     let lastError: Error | null = null;
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ data: query }),
-          signal: AbortSignal.timeout(35000) // 35 second timeout
+          signal: AbortSignal.timeout(50000) // 50 second timeout to allow for Overpass timeout
         });
 
         if (!resp.ok) {

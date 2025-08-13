@@ -7,7 +7,7 @@ interface CacheEntry {
 
 class OverpassCache {
   private cache: Map<string, CacheEntry> = new Map();
-  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+  private readonly DEFAULT_TTL = 10 * 60 * 1000; // 10 minutes - increased for better performance
 
   // Generate cache key from coordinates and tags
   private getCacheKey(lat: number, lon: number, tags: string[]): string {
