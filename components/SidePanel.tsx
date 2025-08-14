@@ -28,8 +28,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     }}>
       {!minimized && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: sidebarWidth < 300 ? 16 : 18, fontWeight: 600, color: '#1f2937' }}>Found Places ({places.length})</h3>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ display: 'flex', gap: sidebarWidth < 300 ? 4 : 8, flexDirection: sidebarWidth < 300 ? 'column' : 'row' }}>
               <button 
                 onClick={onMinimize}
@@ -61,6 +60,27 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
               </button>
             </div>
           </div>
+          
+          <button 
+            onClick={() => {
+              // Functionality to be implemented
+            }}
+            style={{ 
+              margin: '0 0 16px 0', 
+              fontSize: sidebarWidth < 300 ? 16 : 18, 
+              fontWeight: 600, 
+              color: '#1f2937',
+              background: '#f3f4f6',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px 12px',
+              textAlign: 'left',
+              width: '100%',
+              borderRadius: '6px'
+            }}
+          >
+            Found Places ({places.length}). Get more info
+          </button>
 
           {places.length === 0 && (
         <div style={{ 
