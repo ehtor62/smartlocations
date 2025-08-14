@@ -359,59 +359,60 @@ export default function Page() {
 
   return (
     <div className="h-screen w-screen relative">
-  <MapClient center={center} places={places} showCurrentLocation={hasSearched} />
+      <MapClient center={center} places={places} showCurrentLocation={hasSearched} />
 
       {/* modal */}
       {modalVisible && (
-  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/90 p-4 rounded shadow">
-          <h2 className="font-bold text-2xl text-center mb-4">Do You Know what is Around You?</h2>
-          <h1 className="font-bold text-4xl text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">Discover & Explore</h1>
-          <div className="mt-2 flex flex-col gap-2">
-            <button onClick={handleButton1} className="px-3 py-2 rounded bg-blue-600 text-white hover:cursor-pointer">
-              Near me: Find the best Attractions
-            </button>
-            <button onClick={handleButton2} className="px-3 py-2 rounded bg-purple-600 text-white hover:cursor-pointer">
-              Near me: Find anything specific
-            </button>
-            <button onClick={handleButton3} className="px-3 py-2 rounded bg-green-600 text-white hover:cursor-pointer">
-              Anywhere: Find anything specific
-            </button>
-            
-            {/* Number of places slider */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of places to find: {numberOfPlaces}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="40"
-                value={numberOfPlaces}
-                onChange={(e) => setNumberOfPlaces(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb 100%)`
-                }}
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>1</span>
-                <span>40</span>
+        <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4">
+          <div className="bg-white/90 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-md mx-auto">
+            <h2 className="font-bold text-xl sm:text-2xl text-center mb-3 sm:mb-4">Do You Know what is Around You?</h2>
+            <h1 className="font-bold text-2xl sm:text-4xl text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 sm:mb-6">Discover & Explore</h1>
+            <div className="mt-2 flex flex-col gap-2 sm:gap-3">
+              <button onClick={handleButton1} className="px-3 py-2 sm:px-4 sm:py-3 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                Near me: Find the best Attractions
+              </button>
+              <button onClick={handleButton2} className="px-3 py-2 sm:px-4 sm:py-3 rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm sm:text-base">
+                Near me: Find anything specific
+              </button>
+              <button onClick={handleButton3} className="px-3 py-2 sm:px-4 sm:py-3 rounded bg-green-600 text-white hover:bg-green-700 transition-colors text-sm sm:text-base">
+                Anywhere: Find anything specific
+              </button>
+              
+              {/* Number of places slider */}
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of places to find: {numberOfPlaces}
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="40"
+                  value={numberOfPlaces}
+                  onChange={(e) => setNumberOfPlaces(parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb 100%)`
+                  }}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span>40</span>
+                </div>
               </div>
             </div>
           </div>
-          
         </div>
       )}
 
       {/* Category Selection Modal */}
       {categoryModalVisible && (
-        <div className="fixed inset-0 flex items-center justify-center z-[1000]">
-          <div className="bg-white/95 p-4 sm:p-6 rounded-lg shadow-xl max-w-xs sm:max-w-4xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+        <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4">
+          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-sm sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-lg sm:text-2xl">Choose Categories</h2>
             <button 
               onClick={resetAppToInitialState}
-              className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold"
+              className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
             >
               ✕
             </button>
@@ -491,12 +492,13 @@ export default function Page() {
 
       {/* Address Search Modal */}
       {addressModalVisible && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4">
+          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-2xl">Search by Address</h2>
+            <h2 className="font-bold text-lg sm:text-2xl">Search by Address</h2>
             <button 
               onClick={() => setAddressModalVisible(false)}
-              className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+              className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
             >
               ✕
             </button>
@@ -508,7 +510,7 @@ export default function Page() {
               value={addressInput}
               onChange={(e) => handleAddressInput(e.target.value)}
               placeholder="Type an address, city, or place name..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+              className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
               autoFocus
             />
           </div>
@@ -551,12 +553,14 @@ export default function Page() {
               Searching for attractions near selected address...
             </div>
           )}
+          </div>
         </div>
       )}
 
       {/* Category Details Modal */}
       {categoryDetailsVisible && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1002] bg-white/95 p-4 sm:p-6 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 flex items-center justify-center z-[1002] p-4">
+          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-lg sm:text-xl">
               {selectedCategoryForDetails.replace(/_/g, ' ')} Details
@@ -624,6 +628,7 @@ export default function Page() {
               } / Total: {selectedCategoryForDetails && tagGroups[selectedCategoryForDetails as keyof typeof tagGroups] ? 
                 tagGroups[selectedCategoryForDetails as keyof typeof tagGroups].length : 0} tags
             </p>
+          </div>
           </div>
         </div>
       )}

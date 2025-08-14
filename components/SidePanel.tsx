@@ -6,13 +6,16 @@ import { SEARCH_RADIUS_KM } from '../utils/constants';
 import type { Place } from '../app/page';
 
 export default function SidePanel({ open, onClose, onMinimize, places, minimized }: { open: boolean, onClose: () => void, onMinimize: () => void, places: Place[], minimized: boolean }) {
+  // Calculate responsive width
+  const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9) : 360;
+  
   return (
     <div style={{
       position: 'absolute',
-      right: open ? 0 : -360,
+      right: open ? 0 : -sidebarWidth,
       top: 0,
       height: '100vh',
-      width: minimized ? 0 : 360,
+      width: minimized ? 0 : sidebarWidth,
       background: 'white',
       boxShadow: minimized ? 'none' : '-4px 0 12px rgba(0,0,0,0.2)',
       transition: 'width 300ms ease-in-out, box-shadow 300ms ease-in-out',
@@ -25,8 +28,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       {!minimized && (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#1f2937' }}>Found Places ({places.length})</h3>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <h3 style={{ margin: 0, fontSize: sidebarWidth < 300 ? 16 : 18, fontWeight: 600, color: '#1f2937' }}>Found Places ({places.length})</h3>
+            <div style={{ display: 'flex', gap: sidebarWidth < 300 ? 4 : 8, flexDirection: sidebarWidth < 300 ? 'column' : 'row' }}>
               <button 
                 onClick={onMinimize}
                 style={{
@@ -34,9 +37,9 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
-                  padding: '6px 12px',
+                  padding: sidebarWidth < 300 ? '4px 8px' : '6px 12px',
                   cursor: 'pointer',
-                  fontSize: 12
+                  fontSize: sidebarWidth < 300 ? 10 : 12
                 }}
               >
                 − Minimize
@@ -48,9 +51,9 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
-                  padding: '6px 12px',
+                  padding: sidebarWidth < 300 ? '4px 8px' : '6px 12px',
                   cursor: 'pointer',
-                  fontSize: 12
+                  fontSize: sidebarWidth < 300 ? 10 : 12
                 }}
               >
                 ✕ Close
