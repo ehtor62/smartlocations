@@ -457,7 +457,7 @@ export default function Page() {
                   : 'bg-gradient-to-r from-green-500 to-blue-600 text-white hover:from-green-600 hover:to-blue-700 shadow-lg'
               }`}
             >
-              {loading ? 'Searching...' : `Search ${selectedCategories.length} Categories`}
+              {loading ? 'Searching...' : `Find ${selectedCategories.length} Categories`}
             </button>
             {selectedCategories.length > 0 && (
               <p className="text-xs sm:text-sm text-gray-600 mt-2">
@@ -521,7 +521,7 @@ export default function Page() {
       {/* Address Search Modal */}
       {addressModalVisible && (
         <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
+          <div className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-lg sm:text-2xl">Search by Address</h2>
             <button 
@@ -588,7 +588,7 @@ export default function Page() {
       {/* Category Details Modal */}
       {categoryDetailsVisible && (
         <div className="fixed inset-0 flex items-center justify-center z-[1002] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-xs sm:max-w-sm max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
+          <div className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-lg sm:text-xl">
               {selectedCategoryForDetails.replace(/_/g, ' ')} Details
