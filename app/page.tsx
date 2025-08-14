@@ -48,17 +48,28 @@ export default function Page() {
   const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
   const [reportVisible, setReportVisible] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
+  const [reportMinimized, setReportMinimized] = useState(false);
 
   const showReport = (report: string) => {
     console.log('showReport called with:', report);
     setReportContent(report);
     setReportVisible(true);
+    setReportMinimized(false);
     console.log('Report state set to visible');
   };
 
   const hideReport = () => {
     setReportVisible(false);
     setReportContent('');
+    setReportMinimized(false);
+  };
+
+  const minimizeReport = () => {
+    setReportMinimized(true);
+  };
+
+  const maximizeReport = () => {
+    setReportMinimized(false);
   };
 
   const resetAppToInitialState = () => {
@@ -81,6 +92,7 @@ export default function Page() {
     setSelectedTagsInCategory({});
     setReportVisible(false);
     setReportContent('');
+    setReportMinimized(false);
   };
 
   const minimizeSidePanel = () => {
@@ -675,17 +687,41 @@ export default function Page() {
       )}
 
       {/* Report Panel */}
-      {reportVisible && (
-        <div className="absolute top-0 left-0 right-0 z-[1003] bg-white/95 backdrop-blur-sm border-b-2 border-blue-500 shadow-lg max-h-[50vh] overflow-y-auto">
+      {reportVisible && !reportMinimized && (
+        <div className="absolute top-0 left-0 right-0 z-[1003] bg-white/95 backdrop-blur-sm border-b-2 border-blue-500 shadow-lg max-h-[50vh] overflow-y-auto transition-all duration-300">
           <div className="p-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Local Expert Report</h2>
-              <button 
-                onClick={hideReport}
-                className="text-gray-500 hover:text-gray-700 text-xl font-bold p-1"
-              >
-                ✕
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  onClick={minimizeReport}
+                  style={{
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                  fontSize: 12
+                }}
+                >
+                  − Minimize
+                </button>
+                <button 
+                  onClick={hideReport}
+                  style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                  fontSize: 12
+                }}
+                >
+                  ✕ Close
+                </button>
+              </div>
             </div>
             <div 
               className="prose prose-sm max-w-none text-gray-800"
@@ -694,6 +730,17 @@ export default function Page() {
             />
           </div>
         </div>
+      )}
+
+      {/* Floating button to restore minimized report */}
+      {reportVisible && reportMinimized && (
+        <button
+          onClick={maximizeReport}
+          className="absolute top-4 left-4 z-[1004] bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow-lg transition-all duration-200 text-sm font-medium"
+          title="Show Report"
+        >
+          📄 Show Report
+        </button>
       )}
 
   <SidePanel open={panelOpen} onClose={resetAppToInitialState} onMinimize={minimizeSidePanel} minimized={sidebarMinimized} places={places} onShowReport={showReport} />
