@@ -408,23 +408,23 @@ export default function Page() {
               
               {/* Number of places slider */}
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of places to find: {numberOfPlaces}
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="40"
-                  value={numberOfPlaces}
-                  onChange={(e) => setNumberOfPlaces(parseInt(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                  style={{
-                    background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb 100%)`
-                  }}
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>1</span>
-                  <span>40</span>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="1"
+                    max="40"
+                    value={numberOfPlaces}
+                    onChange={(e) => setNumberOfPlaces(parseInt(e.target.value))}
+                    className="w-full h-6 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none w-full">
+                    <span className="text-xs font-bold text-blue-900 ml-2 whitespace-nowrap">
+                      Find {numberOfPlaces} Places
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
