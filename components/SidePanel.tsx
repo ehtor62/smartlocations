@@ -6,8 +6,8 @@ import { SEARCH_RADIUS_KM } from '../utils/constants';
 import type { Place } from '../app/page';
 
 export default function SidePanel({ open, onClose, onMinimize, places, minimized }: { open: boolean, onClose: () => void, onMinimize: () => void, places: Place[], minimized: boolean }) {
-  // Calculate responsive width
-  const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9) : 360;
+  // Calculate responsive width - ensure it never exceeds viewport
+  const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9, window.innerWidth - 40) : 360;
   
   return (
     <div style={{
@@ -16,6 +16,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       top: 0,
       height: '100vh',
       width: minimized ? 0 : sidebarWidth,
+      maxWidth: '100vw',
       background: 'white',
       boxShadow: minimized ? 'none' : '-4px 0 12px rgba(0,0,0,0.2)',
       transition: 'width 300ms ease-in-out, box-shadow 300ms ease-in-out',
