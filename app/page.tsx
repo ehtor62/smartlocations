@@ -45,6 +45,7 @@ export default function Page() {
   const [selectedTagsInCategory, setSelectedTagsInCategory] = useState<Record<string, string[]>>({});
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [numberOfPlaces, setNumberOfPlaces] = useState(20);
+  const [secondSliderValue, setSecondSliderValue] = useState(5);
   const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
   const [reportVisible, setReportVisible] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
@@ -421,8 +422,27 @@ export default function Page() {
                     }}
                   />
                   <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none w-full">
-                    <span className="text-xs font-bold text-blue-900 ml-2 whitespace-nowrap">
+                    <span className="text-xs font-thin text-blue-900 ml-2 whitespace-nowrap">
                       Find {numberOfPlaces} Places
+                    </span>
+                  </div>
+                </div>
+                {/* Second slider */}
+                <div className="relative mt-6">
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={secondSliderValue}
+                    onChange={(e) => setSecondSliderValue(parseInt(e.target.value))}
+                    className="w-full h-6 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) ${((secondSliderValue - 1) / 9) * 100}%, #e5e7eb ${((secondSliderValue - 1) / 9) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                  <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none w-full">
+                    <span className="text-xs font-thin text-blue-900 ml-2 whitespace-nowrap">
+                      Search within {secondSliderValue} km
                     </span>
                   </div>
                 </div>
