@@ -497,7 +497,7 @@ export default function Page() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-lg sm:text-2xl">Search by Address</h2>
             <button 
-              onClick={() => setAddressModalVisible(false)}
+              onClick={resetAppToInitialState}
               className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
             >
               ✕
