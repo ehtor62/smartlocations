@@ -4,7 +4,7 @@ function hasMessage(err: unknown): err is { message: string } {
 }
 
 import { NextResponse } from 'next/server';
-import { SEARCH_RADIUS_METERS } from '../../../utils/constants';
+import { getSearchRadiusMeters } from '../../../utils/constants';
 import { overpassCache } from '../../../utils/overpass-cache';
 
 // Type for Overpass API elements
@@ -47,8 +47,8 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { lat, lon, tags, limit = 20 } = body as { lat: number; lon: number; tags: string[]; limit?: number };
+  const body = await req.json();
+  const { lat, lon, tags, limit = 20, radiusKm = 5 } = body as { lat: number; lon: number; tags: string[]; limit?: number; radiusKm?: number };
     if (typeof lat !== 'number' || typeof lon !== 'number') {
       return NextResponse.json({ error: 'lat and lon required' }, { status: 400 });
     }
@@ -68,9 +68,10 @@ export async function POST(req: Request) {
 
     // Build Overpass QL: search for nodes/ways/relations with the provided tags within radius
     // tags are expected as strings like "amenity=library" or "tourism=museum"
+    const radiusMeters = getSearchRadiusMeters(radiusKm);
     const tagFilters = (tags || []).map((t: string) => {
       const [k, v] = t.split('=');
-      return `node["${k}"="${v}"](around:${SEARCH_RADIUS_METERS},${lat},${lon});way["${k}"="${v}"](around:${SEARCH_RADIUS_METERS},${lat},${lon});relation["${k}"="${v}"](around:${SEARCH_RADIUS_METERS},${lat},${lon});`;
+      return `node["${k}"="${v}"](around:${radiusMeters},${lat},${lon});way["${k}"="${v}"](around:${radiusMeters},${lat},${lon});relation["${k}"="${v}"](around:${radiusMeters},${lat},${lon});`;
     }).join('\n');
 
     const query = `

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SEARCH_RADIUS_KM } from '../utils/constants';
+
 
 import type { Place } from '../app/page';
 
@@ -136,7 +136,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
           textAlign: 'center',
           color: '#6b7280'
         }}>
-          No places found {SEARCH_RADIUS_KM}km around the red marker. Try a different location!
+          No places found in the selected radius around the red marker. Try a different location!
         </div>
       )}
 
