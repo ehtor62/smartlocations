@@ -1,13 +1,56 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { SEARCH_RADIUS_KM } from '../utils/constants';
 
 import type { Place } from '../app/page';
 
-export default function SidePanel({ open, onClose, onMinimize, places, minimized }: { open: boolean, onClose: () => void, onMinimize: () => void, places: Place[], minimized: boolean }) {
+export default function SidePanel({ open, onClose, onMinimize, places, minimized, onShowReport }: { 
+  open: boolean, 
+  onClose: () => void, 
+  onMinimize: () => void, 
+  places: Place[], 
+  minimized: boolean,
+  onShowReport?: (report: string) => void
+}) {
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  
   // Calculate responsive width - ensure it never exceeds viewport
   const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9, window.innerWidth - 40) : 360;
+
+  const handleGenerateReport = async () => {
+    console.log('handleGenerateReport called', { onShowReport, placesLength: places.length });
+    if (!onShowReport || places.length === 0) {
+      console.log('Early return:', { onShowReport: !!onShowReport, placesLength: places.length });
+      return;
+    }
+    
+    setIsGeneratingReport(true);
+    try {
+      console.log('Making API call with places:', places);
+      const response = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ elements: places }),
+      });
+
+      console.log('API response status:', response.status);
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
+
+      const data = await response.json();
+      console.log('API response data:', data);
+      onShowReport(data.report);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
   
   return (
     <div style={{
@@ -63,23 +106,25 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
           
           <button 
             onClick={() => {
-              // Functionality to be implemented
+              console.log('Button clicked!');
+              handleGenerateReport();
             }}
+            disabled={isGeneratingReport || places.length === 0}
             style={{ 
               margin: '0 0 16px 0', 
               fontSize: sidebarWidth < 300 ? 16 : 18, 
               fontWeight: 600, 
-              color: '#1f2937',
-              background: '#f3f4f6',
+              color: isGeneratingReport ? '#6b7280' : '#1f2937',
+              background: isGeneratingReport ? '#e5e7eb' : '#f3f4f6',
               border: 'none',
-              cursor: 'pointer',
+              cursor: isGeneratingReport || places.length === 0 ? 'not-allowed' : 'pointer',
               padding: '8px 12px',
               textAlign: 'left',
               width: '100%',
               borderRadius: '6px'
             }}
           >
-            Found Places ({places.length}). Get more info
+            {isGeneratingReport ? 'Generating Report...' : `Found Places (${places.length}). Get more info`}
           </button>
 
           {places.length === 0 && (

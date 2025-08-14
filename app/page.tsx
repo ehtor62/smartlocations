@@ -46,6 +46,20 @@ export default function Page() {
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [numberOfPlaces, setNumberOfPlaces] = useState(20);
   const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportContent, setReportContent] = useState<string>('');
+
+  const showReport = (report: string) => {
+    console.log('showReport called with:', report);
+    setReportContent(report);
+    setReportVisible(true);
+    console.log('Report state set to visible');
+  };
+
+  const hideReport = () => {
+    setReportVisible(false);
+    setReportContent('');
+  };
 
   const resetAppToInitialState = () => {
     setPlaces([]);
@@ -65,6 +79,8 @@ export default function Page() {
     setCategoryDetailsVisible(false);
     setSelectedCategoryForDetails('');
     setSelectedTagsInCategory({});
+    setReportVisible(false);
+    setReportContent('');
   };
 
   const minimizeSidePanel = () => {
@@ -658,7 +674,29 @@ export default function Page() {
         </button>
       )}
 
-  <SidePanel open={panelOpen} onClose={resetAppToInitialState} onMinimize={minimizeSidePanel} minimized={sidebarMinimized} places={places} />
+      {/* Report Panel */}
+      {reportVisible && (
+        <div className="absolute top-0 left-0 right-0 z-[1003] bg-white/95 backdrop-blur-sm border-b-2 border-blue-500 shadow-lg max-h-[50vh] overflow-y-auto">
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Local Expert Report</h2>
+              <button 
+                onClick={hideReport}
+                className="text-gray-500 hover:text-gray-700 text-xl font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+            <div 
+              className="prose prose-sm max-w-none text-gray-800"
+              style={{ whiteSpace: 'pre-wrap' }}
+              dangerouslySetInnerHTML={{ __html: reportContent.replace(/\n/g, '<br>') }}
+            />
+          </div>
+        </div>
+      )}
+
+  <SidePanel open={panelOpen} onClose={resetAppToInitialState} onMinimize={minimizeSidePanel} minimized={sidebarMinimized} places={places} onShowReport={showReport} />
     </div>
   );
 }
