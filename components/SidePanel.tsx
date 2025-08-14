@@ -55,14 +55,14 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   return (
     <div style={{
       position: 'absolute',
-      right: open ? 0 : -sidebarWidth,
+      right: open ? 0 : -Math.max(sidebarWidth, 400), // Ensure it's completely off-screen
       top: 0,
       height: '100vh',
       width: minimized ? 0 : sidebarWidth,
       maxWidth: '100vw',
       background: 'white',
       boxShadow: minimized ? 'none' : '-4px 0 12px rgba(0,0,0,0.2)',
-      transition: 'width 300ms ease-in-out, box-shadow 300ms ease-in-out',
+      transition: 'right 300ms ease-in-out, width 300ms ease-in-out, box-shadow 300ms ease-in-out',
       zIndex: 1001,
       padding: minimized ? 0 : 16,
       overflowY: minimized ? 'hidden' : 'auto',
