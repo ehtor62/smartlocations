@@ -475,7 +475,7 @@ export default function Page() {
                       e.stopPropagation();
                       showCategoryDetails(category);
                     }}
-                    className="px-1 py-2 md:px-2 md:py-3 rounded-r-lg text-xs sm:text-sm border-l border-white/20 hover:bg-black/10 transition-all duration-200"
+                    className="px-1 py-2 md:px-2 md:py-3 rounded-r-lg text-xs sm:text-sm border-l border-white/20 bg-black/20 hover:bg-black/30 transition-all duration-200"
                     disabled={loading}
                     style={{ width: '33.33%' }}
                     title={`View ${category.replace(/_/g, ' ')} details`}
@@ -560,17 +560,29 @@ export default function Page() {
       {/* Category Details Modal */}
       {categoryDetailsVisible && (
         <div className="fixed inset-0 flex items-center justify-center z-[1002] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
+          <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-xs sm:max-w-sm max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
           <div className="flex justify-between items-center mb-4">
             <h2 className="font-bold text-lg sm:text-xl">
               {selectedCategoryForDetails.replace(/_/g, ' ')} Details
             </h2>
-            <button 
-              onClick={closeCategoryDetailsAndActivate}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded transition-colors"
-            >
-              Select
-            </button>
+            <div className="flex gap-2">
+              
+              <button 
+                onClick={closeCategoryDetailsAndActivate}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded transition-colors"
+              >
+                Select
+              </button>
+              <button 
+                onClick={() => {
+                  setCategoryDetailsVisible(false);
+                  setSelectedCategoryForDetails('');
+                }}
+                className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
           </div>
           
           <div className="space-y-2">
