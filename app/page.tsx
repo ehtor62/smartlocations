@@ -364,7 +364,7 @@ export default function Page() {
       {/* modal */}
       {modalVisible && (
         <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-          <div className="bg-white/90 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-md mx-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
+          <div className="bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
             <h2 className="font-bold text-xl sm:text-2xl text-center mb-3 sm:mb-4">Do You Know what is Around You?</h2>
             <h1 className="font-bold text-2xl sm:text-4xl text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 sm:mb-6">Discover & Explore</h1>
             <div className="mt-2 flex flex-col gap-2 sm:gap-3">
