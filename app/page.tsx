@@ -423,7 +423,7 @@ export default function Page() {
                     }}
                   />
                   <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none w-full">
-                    <span className="text-xs font-thin text-blue-900 ml-2 whitespace-nowrap">
+                    <span className="text-xs font-thin text-black ml-2 whitespace-nowrap">
                       Find {numberOfPlaces} Places
                     </span>
                   </div>
@@ -442,7 +442,7 @@ export default function Page() {
                     }}
                   />
                   <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none w-full">
-                    <span className="text-xs font-thin text-blue-900 ml-2 whitespace-nowrap">
+                    <span className="text-xs font-thin text-black ml-2 whitespace-nowrap">
                       Search within {radiusKm} km
                     </span>
                   </div>
