@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 const MapClient = dynamic(() => import('../components/MapClient'), { ssr: false });
 import SidePanel from '../components/SidePanel';
+import AddressSearchModal, { type AddressSuggestion } from '../components/AddressSearchModal';
 import { tagGroups } from '../utils/allowedtags';
 
 // Place type matches the structure returned from the API
@@ -18,15 +19,6 @@ export interface Place {
   distance_m: number;
 }
 
-// Address suggestion interface for Nominatim API
-interface AddressSuggestion {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  type: string;
-}
-
 export default function Page() {
   const [places, setPlaces] = useState<Place[]>([]);
   const [center, setCenter] = useState<{ lat: number; lon: number }>({ lat: 47.3769, lon: 8.5417 }); // Zurich
@@ -37,8 +29,6 @@ export default function Page() {
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
-  const [addressInput, setAddressInput] = useState('');
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [searchMode, setSearchMode] = useState<'current' | 'address'>('current');
   const [categoryDetailsVisible, setCategoryDetailsVisible] = useState(false);
   const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<string>('');
@@ -100,8 +90,6 @@ export default function Page() {
     setCategoryModalVisible(false);
     setSelectedCategories([]);
     setAddressModalVisible(false);
-    setAddressInput('');
-    setAddressSuggestions([]);
     setSearchMode('current');
     setCategoryDetailsVisible(false);
     setSelectedCategoryForDetails('');
@@ -179,41 +167,10 @@ export default function Page() {
 
   const handleButton3 = () => {
     setModalVisible(false);
-    setAddressInput('');
-    setAddressSuggestions([]);
     setAddressModalVisible(true);
   };
 
-  const searchAddresses = async (query: string) => {
-    if (query.length < 3) {
-      setAddressSuggestions([]);
-      return;
-    }
-
-    try {
-      // Using Nominatim API for address search
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'User-Agent': 'SmartLocations/1.0'
-          }
-        }
-      );
-      const data = await response.json();
-      setAddressSuggestions(data);
-    } catch (error) {
-      console.error('Address search failed:', error);
-      setAddressSuggestions([]);
-    }
-  };
-
-  const handleAddressInput = (value: string) => {
-    setAddressInput(value);
-    searchAddresses(value);
-  };
-
-  const selectAddress = async (suggestion: AddressSuggestion) => {
+  const handleAddressSelect = async (suggestion: AddressSuggestion) => {
     const lat = parseFloat(suggestion.lat);
     const lon = parseFloat(suggestion.lon);
     
@@ -554,71 +511,12 @@ export default function Page() {
       )}
 
       {/* Address Search Modal */}
-      {addressModalVisible && (
-        <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-          <div className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-lg sm:text-2xl">Search by Address</h2>
-            <button 
-              onClick={resetAppToInitialState}
-              className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div className="mb-4">
-            <input
-              type="text"
-              value={addressInput}
-              onChange={(e) => handleAddressInput(e.target.value)}
-              placeholder="Type an address, city, or place name..."
-              className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
-              autoFocus
-            />
-          </div>
-
-          {/* Address Suggestions */}
-          {addressSuggestions.length > 0 && (
-            <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
-              {addressSuggestions.map((suggestion, index) => (
-                <button
-                  key={suggestion.place_id}
-                  onClick={() => selectAddress(suggestion)}
-                  className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${
-                    index !== addressSuggestions.length - 1 ? 'border-b border-gray-100' : ''
-                  }`}
-                  disabled={loading}
-                >
-                  <div className="font-medium text-gray-900">{suggestion.display_name}</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {suggestion.type} • {parseFloat(suggestion.lat).toFixed(4)}, {parseFloat(suggestion.lon).toFixed(4)}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {addressInput.length >= 3 && addressSuggestions.length === 0 && (
-            <div className="text-center text-gray-500 py-4">
-              No addresses found. Try a different search term.
-            </div>
-          )}
-
-          {addressInput.length > 0 && addressInput.length < 3 && (
-            <div className="text-center text-gray-500 py-4">
-              Type at least 3 characters to search for addresses.
-            </div>
-          )}
-
-          {loading && (
-            <div className="text-center text-blue-600 py-4">
-              Searching for attractions near selected address...
-            </div>
-          )}
-          </div>
-        </div>
-      )}
+      <AddressSearchModal 
+        visible={addressModalVisible}
+        onClose={() => setAddressModalVisible(false)}
+        onAddressSelect={handleAddressSelect}
+        loading={loading}
+      />
 
       {/* Category Details Modal */}
       {categoryDetailsVisible && (
