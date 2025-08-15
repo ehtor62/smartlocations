@@ -69,8 +69,12 @@ export default function Page() {
     // Replace newlines with <br> tags
     let formatted = text.replace(/\n/g, '<br>');
     
-    // URL regex pattern to match http/https URLs
-    const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+    // First, handle markdown-style links [text](url) and replace with just the URL
+    const markdownLinkRegex = /\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g;
+    formatted = formatted.replace(markdownLinkRegex, '$2');
+    
+    // URL regex pattern to match http/https URLs (avoiding already processed <a> tags)
+    const urlRegex = /(?<!<a[^>]*>)(https?:\/\/[^\s<>"{}|\\^`[\]]+)(?![^<]*<\/a>)/g;
     
     // Replace URLs with clickable links
     formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">$1</a>');
