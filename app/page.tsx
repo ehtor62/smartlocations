@@ -74,6 +74,20 @@ export default function Page() {
     setReportMinimized(false);
   };
 
+  // Function to convert URLs in text to clickable links
+  const formatReportWithLinks = (text: string) => {
+    // Replace newlines with <br> tags
+    let formatted = text.replace(/\n/g, '<br>');
+    
+    // URL regex pattern to match http/https URLs
+    const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`[\]]+)/g;
+    
+    // Replace URLs with clickable links
+    formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">$1</a>');
+    
+    return formatted;
+  };
+
   const resetAppToInitialState = () => {
     setPlaces([]);
     setCenter({ lat: 47.3769, lon: 8.5417 }); // Reset to Zurich
@@ -747,7 +761,7 @@ export default function Page() {
             <div 
               className="prose prose-sm max-w-none text-gray-800"
               style={{ whiteSpace: 'pre-wrap' }}
-              dangerouslySetInnerHTML={{ __html: reportContent.replace(/\n/g, '<br>') }}
+              dangerouslySetInnerHTML={{ __html: formatReportWithLinks(reportContent) }}
             />
           </div>
         </div>
