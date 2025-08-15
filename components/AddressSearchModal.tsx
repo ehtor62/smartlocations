@@ -34,15 +34,15 @@ export default function AddressSearchModal({
     }
 
     try {
-      // Using Nominatim API for address search
+      // Using our API route to proxy Nominatim requests
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'User-Agent': 'SmartLocations/1.0'
-          }
-        }
+        `/api/address-search?q=${encodeURIComponent(query)}`
       );
+      
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+      
       const data = await response.json();
       setAddressSuggestions(data);
     } catch (error) {
@@ -73,7 +73,15 @@ export default function AddressSearchModal({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-      <div className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
+      <div 
+        className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" 
+        style={{ 
+          maxWidth: 'calc(100vw - 2rem)', 
+          maxHeight: 'calc(100vh - 2rem)',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain'
+        }}
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-lg sm:text-2xl">Search by Address</h2>
           <button 
@@ -97,7 +105,13 @@ export default function AddressSearchModal({
 
         {/* Address Suggestions */}
         {addressSuggestions.length > 0 && (
-          <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+          <div 
+            className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg"
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain'
+            }}
+          >
             {addressSuggestions.map((suggestion, index) => (
               <button
                 key={suggestion.place_id}
