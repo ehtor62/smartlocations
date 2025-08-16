@@ -74,7 +74,8 @@ export default function Page() {
     formatted = formatted.replace(markdownLinkRegex, '$2');
     
     // URL regex pattern to match http/https URLs (avoiding already processed <a> tags)
-    const urlRegex = /(?<!<a[^>]*>)(https?:\/\/[^\s<>"{}|\\^`[\]]+)(?![^<]*<\/a>)/g;
+    // Match URLs but exclude trailing punctuation that's likely sentence punctuation
+    const urlRegex = /(?<!<a[^>]*>)(https?:\/\/[^\s<>"{}|\\^`[\]]+?)(?=\.\s|\s|$|[,;:!?\)\]])(?![^<]*<\/a>)/g;
     
     // Replace URLs with clickable links
     formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">$1</a>');
