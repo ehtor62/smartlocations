@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Elements array is required' }, { status: 400 });
     }
 
-    const prompt = `I am new to this geographical area. Based on the data given ${JSON.stringify(elements)}, explain why this area is interesting to strangers and if you know more about a place, think hard and write a
-     detailed report with as much information as possible. When mentioning websites, please format them as plain URLs starting with http:// or https:// (do not use markdown formatting like [text](url)). Do not mention the same website twice.`;
-
+    const prompt = `Based on the data given ${JSON.stringify(elements)}, 
+     make a plan how and why these places should be visited.`;
+     //When mentioning websites, please format them as plain URLs starting with http:// or https:// (do not use markdown formatting like [text](url)).
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
