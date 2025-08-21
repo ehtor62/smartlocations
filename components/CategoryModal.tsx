@@ -53,7 +53,12 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 : 'bg-gradient-to-r from-green-500 to-blue-600 text-white hover:from-green-600 hover:to-blue-700 shadow-lg'
             }`}
           >
-            {loading ? 'Searching...' : `Find ${selectedCategories.length} Categories`}
+            {loading
+              ? (editAttractionsMode ? 'Adding...' : 'Searching...')
+              : (editAttractionsMode
+                  ? `Add ${selectedCategories.length} Categories`
+                  : `Find ${selectedCategories.length} Categories`)
+            }
           </button>
           {selectedCategories.length > 0 && (
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
