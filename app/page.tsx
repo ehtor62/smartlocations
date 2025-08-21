@@ -54,6 +54,14 @@ export interface Place {
 }
 
 export default function Page() {
+  // State to track if CategoryModal is in Attractions edit mode
+  const [editAttractionsMode, setEditAttractionsMode] = useState(false);
+  // Handler for Define Attractions button
+  const handleDefineAttractions = () => {
+    setEditAttractionsMode(true);
+    setCategoryModalVisible(true);
+    setModalVisible(false);
+  };
   // Spinner for 'Near me - find the best attractions'
   const [showGlobeSpinner, setShowGlobeSpinner] = useState(false);
   const [places, setPlaces] = useState<Place[]>([]);
@@ -494,11 +502,15 @@ export default function Page() {
         onButton1={handleButton1}
         onButton2={handleButton2}
         onButton3={handleButton3}
+        onDefineAttractions={handleDefineAttractions}
       />
 
       <CategoryModal
         visible={categoryModalVisible}
-        resetAppToInitialState={resetAppToInitialState}
+        resetAppToInitialState={() => {
+          setEditAttractionsMode(false);
+          resetAppToInitialState();
+        }}
         handleMultiCategorySearch={handleMultiCategorySearch}
         selectedCategories={selectedCategories}
         loading={loading}
@@ -507,6 +519,7 @@ export default function Page() {
         selectedCategoryForDetails={selectedCategoryForDetails}
         selectedTagsInCategory={selectedTagsInCategory}
         tagGroups={tagGroups}
+        editAttractionsMode={editAttractionsMode}
       />
 
       {/* Address Search Modal */}

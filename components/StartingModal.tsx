@@ -11,6 +11,7 @@ interface StartingModalProps {
   onButton1: () => void;
   onButton2: () => void;
   onButton3: () => void;
+  onDefineAttractions: () => void;
 }
 
 const StartingModal: React.FC<StartingModalProps> = ({
@@ -24,6 +25,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onButton1,
   onButton2,
   onButton3,
+  onDefineAttractions,
 }) => {
   if (!visible) return null;
   return (
@@ -100,11 +102,11 @@ const StartingModal: React.FC<StartingModalProps> = ({
               <label htmlFor="keep-location-checkbox" className="text-xs font-medium text-gray-700" style={{ minWidth: 110, marginLeft: 0 }}>Keep Location</label>
               <button
                 type="button"
-                className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors opacity-60 cursor-not-allowed"
-                disabled
-                title="Define which tags are included as Attractions (coming soon)"
+                className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors hover:opacity-100 cursor-pointer"
+                onClick={onDefineAttractions}
+                title="Define which tags are included as Attractions"
               >
-                Define Attractions
+                My Attractions
               </button>
             </div>
           </div>
