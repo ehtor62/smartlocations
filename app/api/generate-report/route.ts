@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+console.log('OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? '[SET]' : '[NOT SET]');
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = `Based on the data given ${JSON.stringify(elements)}, 
-     make a plan why these places should be visited. Give a deep insight of the background of each notable place. Provide website links if possible`;
+     make a plan why these places should be visited. Give a deep insight of the background of each notable place. Provide website links if possible.`;
      //When mentioning websites, please format them as plain URLs starting with http:// or https:// (do not use markdown formatting like [text](url)).
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
@@ -28,7 +29,13 @@ export async function POST(request: NextRequest) {
       temperature: 0.7,
     });
 
-    const report = completion.choices[0]?.message?.content || 'No report generated';
+    let report = completion.choices[0]?.message?.content || 'No report generated';
+
+    // Remove a dot at the end of any website link (http/https)
+    report = report.replace(/(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)\./g, (match, url) => {
+      // Only remove the dot if it is not followed by a letter or digit (to avoid breaking sentences like ".com. More info...")
+      return url;
+    });
 
     return NextResponse.json({ report });
   } catch (error) {
