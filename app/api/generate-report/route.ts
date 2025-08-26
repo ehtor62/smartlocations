@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = `Based on the data given ${JSON.stringify(elements)}, 
-     make a plan how and why these places should be visited. Give a deep insight into historical, architectural, geological, biological, chemical or societal facts of each notable place.`;
+     make a plan why these places should be visited. Give a deep insight of the background of each notable place. Provide website links if possible`;
      //When mentioning websites, please format them as plain URLs starting with http:// or https:// (do not use markdown formatting like [text](url)).
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
