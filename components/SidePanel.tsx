@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 
 
 import type { Place } from '../app/page';
@@ -52,6 +53,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     }
   };
   
+  const user = useFirebaseUser();
+
   return (
     <div style={{
       position: 'absolute',
@@ -71,7 +74,18 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     }}>
       {!minimized && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8 }}>
+          {/* User info section */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            {user ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {user.photoURL ? (
+                  <img src={user.photoURL} alt="User avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                ) : (
+                  <span style={{ fontSize: 24, marginRight: 4 }}>👤</span>
+                )}
+                <span style={{ fontWeight: 500 }}>{user.displayName || user.email || 'User'}</span>
+              </div>
+            ) : null}
             <div style={{ display: 'flex', gap: sidebarWidth < 300 ? 4 : 8, flexDirection: sidebarWidth < 300 ? 'column' : 'row' }}>
               <button 
                 onClick={onMinimize}

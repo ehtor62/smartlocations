@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { useFirebaseUser } from './LoginModalOnLoadWrapper';
+import { getAuth, signOut } from 'firebase/auth';
+import app from '../utils/firebase';
+import Image from 'next/image';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -142,11 +146,54 @@ function AutoZoomToCircle({ center, radius, showCircle }: { center: { lat: numbe
 import type { Place } from '../app/page';
 
 export default function MapClient({ center, places, showCurrentLocation }: { center: { lat: number; lon: number }, places: Place[], showCurrentLocation: boolean }) {
+  const user = useFirebaseUser();
   // Calculate the maximum distance for the circle radius
   const maxDistance = places.length > 0 ? Math.max(...places.map(p => p.distance_m)) : 0;
   
   return (
-    <MapContainer center={[center.lat, center.lon] as [number, number]} zoom={13} style={{ height: '100vh', width: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      {/* User avatar/name overlay */}
+      {user && (
+        <div style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 2000,
+          background: 'rgba(255,255,255,0.95)',
+          borderRadius: 24,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          padding: '4px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          minWidth: 40
+        }}>
+          {user.photoURL ? (
+            <Image src={user.photoURL} alt="User avatar" width={32} height={32} style={{ borderRadius: '50%' }} />
+          ) : (
+            <span style={{ fontSize: 24 }}>👤</span>
+          )}
+          <span style={{ fontWeight: 500, fontSize: 15 }}>{user.displayName || user.email || 'User'}</span>
+          <button
+            onClick={() => signOut(getAuth(app))}
+            style={{
+              marginLeft: 8,
+              background: 'none',
+              border: 'none',
+              color: '#3b82f6',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+              padding: 0,
+              textDecoration: 'underline',
+            }}
+            title="Log out"
+          >
+            Log out
+          </button>
+        </div>
+      )}
+      <MapContainer center={[center.lat, center.lon] as [number, number]} zoom={13} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
         attribution='&copy; OpenStreetMap contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -238,6 +285,7 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
           </Popup>
         </Marker>
       ))}
-    </MapContainer>
+      </MapContainer>
+    </div>
   );
 }
