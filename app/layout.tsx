@@ -1,6 +1,8 @@
+
 import './globals.css';
 import 'leaflet/dist/leaflet.css';
 import type { Metadata } from "next";
+import LoginModalOnLoadWrapper from '../components/LoginModalOnLoadWrapper';
 
 export const metadata: Metadata = {
   title: 'Smart Locations',
@@ -21,7 +23,8 @@ export default function RootLayout({
       <body
         
       >
-        {children}
+  {/* Show login modal on page load */}
+  <LoginModalOnLoadWrapper>{children}</LoginModalOnLoadWrapper>
       </body>
     </html>
   );
