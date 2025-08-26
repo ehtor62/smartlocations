@@ -5,7 +5,7 @@ import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 import { getAuth, signOut } from 'firebase/auth';
 import app from '../utils/firebase';
 import Image from 'next/image';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Tooltip } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Tooltip, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 
 // Basic Leaflet icon fix for Next.js
@@ -157,7 +157,7 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
         <div style={{
           position: 'absolute',
           top: 16,
-          right: 16,
+          left: 16,
           zIndex: 2000,
           background: 'rgba(255,255,255,0.95)',
           borderRadius: 24,
@@ -193,7 +193,8 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
           </button>
         </div>
       )}
-      <MapContainer center={[center.lat, center.lon] as [number, number]} zoom={13} style={{ height: '100vh', width: '100%' }}>
+  <MapContainer center={[center.lat, center.lon] as [number, number]} zoom={13} style={{ height: '100vh', width: '100%' }} zoomControl={false}>
+  <ZoomControl position="bottomleft" />
       <TileLayer
         attribution='&copy; OpenStreetMap contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

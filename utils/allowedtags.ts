@@ -295,7 +295,7 @@ Craft_Wearables: [
     'craft:dental_technician',
     'craft:pest_control',
     'emergency:ambulance_station',
-    'emergency:defibrillator',
+    //'emergency:defibrillator',
     'emergency:landing_site',
     'healthcare:vaccination_centre',
   ],
