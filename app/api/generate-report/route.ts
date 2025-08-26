@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
     let report = completion.choices[0]?.message?.content || 'No report generated';
 
     // Remove a dot at the end of any website link (http/https)
-    report = report.replace(/(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)\./g, (match, url) => {
+    //report = report.replace(/(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)\./g, (match, url) => {
       // Only remove the dot if it is not followed by a letter or digit (to avoid breaking sentences like ".com. More info...")
-      return url;
-    });
+    //  return url;
+    //});
 
     return NextResponse.json({ report });
   } catch (error) {
