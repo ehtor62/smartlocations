@@ -29,13 +29,11 @@ export async function POST(request: NextRequest) {
       temperature: 0.7,
     });
 
-    let report = completion.choices[0]?.message?.content || 'No report generated';
-
-    // Remove a dot at the end of any website link (http/https)
-    //report = report.replace(/(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)\./g, (match, url) => {
-      // Only remove the dot if it is not followed by a letter or digit (to avoid breaking sentences like ".com. More info...")
-    //  return url;
-    //});
+    const report = (completion.choices[0]?.message?.content || 'No report generated')
+      .replace(/(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)\./g, (match, url) => {
+        // Only remove the dot if it is not followed by a letter or digit (to avoid breaking sentences like ".com. More info...")
+        return url;
+      });
 
     return NextResponse.json({ report });
   } catch (error) {
