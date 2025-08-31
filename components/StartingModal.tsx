@@ -134,10 +134,9 @@ const StartingModal: React.FC<StartingModalProps> = ({
           </div>
         </div>
       </div>
-
-      {/* ElevenLabs Convai Widget Embed */}
-      <div style={{ width: '100%', marginTop: 16, display: 'flex', justifyContent: 'center' }}>
-        <div ref={widgetRef} style={{ width: '100%' }} />
+      {/* ElevenLabs Convai Widget Embed at the bottom of the overlay */}
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 24, display: 'flex', justifyContent: 'center', zIndex: 1100 }}>
+        <div ref={widgetRef} style={{ maxWidth: 400, width: 'auto', margin: '0 auto' }} />
       </div>
     </div>
   );
