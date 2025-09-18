@@ -35,7 +35,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
       widgetRef.current.innerHTML = '';
       // Create the custom element
       const widget = document.createElement('elevenlabs-convai');
-      widget.setAttribute('agent-id', 'agent_5901k5955179e3gbjxv1qk00fs54');
+      widget.setAttribute('agent-id', 'agent_5901k3n0zag2fgs983cj8s3887w3');
       widgetRef.current.appendChild(widget);
       // Inject the script if not already present
       if (!document.getElementById('elevenlabs-convai-script')) {
