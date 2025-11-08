@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 interface StartingModalProps {
   visible: boolean;
@@ -27,27 +27,6 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onButton3,
   onDefineAttractions,
 }) => {
-  const widgetRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (visible && widgetRef.current) {
-      // Clear previous widget if any
-      widgetRef.current.innerHTML = '';
-      // Create the custom element
-      const widget = document.createElement('elevenlabs-convai');
-      widget.setAttribute('agent-id', 'agent_5901k3n0zag2fgs983cj8s3887w3');
-      widgetRef.current.appendChild(widget);
-      // Inject the script if not already present
-      if (!document.getElementById('elevenlabs-convai-script')) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
-        script.async = true;
-        script.type = 'text/javascript';
-        script.id = 'elevenlabs-convai-script';
-        document.body.appendChild(script);
-      }
-    }
-  }, [visible]);
 
   if (!visible) return null;
   return (
@@ -133,10 +112,6 @@ const StartingModal: React.FC<StartingModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
-      {/* ElevenLabs Convai Widget Embed at the bottom of the overlay */}
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 24, display: 'flex', justifyContent: 'center', zIndex: 1100 }}>
-        <div ref={widgetRef} style={{ maxWidth: 400, width: 'auto', margin: '0 auto' }} />
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ import CategoryModal from '../components/CategoryModal';
 import CategoryDetailsModal from '../components/CategoryDetailsModal';
 import AddressSearchModal, { type AddressSuggestion } from '../components/AddressSearchModal';
 import StartingModal from '../components/StartingModal';
-import { tagGroups } from '../utils/allowedtags';
+import { tagGroups as initialTagGroups } from '../utils/allowedtags';
 
 // CSS for custom slider handles
 if (typeof document !== 'undefined') {
@@ -76,6 +76,7 @@ export default function Page() {
   const [categoryDetailsVisible, setCategoryDetailsVisible] = useState(false);
   const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<string>('');
   const [selectedTagsInCategory, setSelectedTagsInCategory] = useState<Record<string, string[]>>({});
+  const [tagGroups, setTagGroups] = useState(initialTagGroups);
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [numberOfPlaces, setNumberOfPlaces] = useState(20);
   // Second slider: 1-20 km, default 5
@@ -282,6 +283,22 @@ export default function Page() {
       if (!selectedCategories.includes(selectedCategoryForDetails)) {
         setSelectedCategories(prev => [...prev, selectedCategoryForDetails]);
       }
+      
+      // If in edit attractions mode and not selecting from Attractions category itself
+      if (editAttractionsMode && selectedCategoryForDetails !== 'Attractions') {
+        const selectedTags = selectedTagsInCategory[selectedCategoryForDetails] || tagGroups[selectedCategoryForDetails as keyof typeof tagGroups] || [];
+        
+        // Add selected tags to Attractions category
+        setTagGroups(prev => {
+          const currentAttractionsTags = prev.Attractions || [];
+          const newTags = selectedTags.filter(tag => !currentAttractionsTags.includes(tag));
+          
+          return {
+            ...prev,
+            Attractions: [...currentAttractionsTags, ...newTags]
+          };
+        });
+      }
     }
     setCategoryDetailsVisible(false);
     setSelectedCategoryForDetails('');
@@ -298,11 +315,35 @@ export default function Page() {
   };
 
   const toggleCategory = (categoryName: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryName)
-        ? prev.filter(cat => cat !== categoryName)
-        : [...prev, categoryName]
-    );
+    // If in edit attractions mode and not selecting Attractions itself
+    if (editAttractionsMode && categoryName !== 'Attractions') {
+      // Add ALL tags from this category to Attractions
+      const allCategoryTags = tagGroups[categoryName as keyof typeof tagGroups] || [];
+      
+      setTagGroups(prev => {
+        const currentAttractionsTags = prev.Attractions || [];
+        const newTags = allCategoryTags.filter(tag => !currentAttractionsTags.includes(tag));
+        
+        return {
+          ...prev,
+          Attractions: [...currentAttractionsTags, ...newTags]
+        };
+      });
+      
+      // Still toggle the category selection for visual feedback
+      setSelectedCategories(prev => 
+        prev.includes(categoryName)
+          ? prev.filter(cat => cat !== categoryName)
+          : [...prev, categoryName]
+      );
+    } else {
+      // Normal toggle behavior when not in edit mode
+      setSelectedCategories(prev => 
+        prev.includes(categoryName)
+          ? prev.filter(cat => cat !== categoryName)
+          : [...prev, categoryName]
+      );
+    }
   };
 
   const handleMultiCategorySearch = async () => {
