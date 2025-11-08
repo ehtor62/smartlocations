@@ -77,6 +77,7 @@ export default function Page() {
   const [selectedCategoryForDetails, setSelectedCategoryForDetails] = useState<string>('');
   const [selectedTagsInCategory, setSelectedTagsInCategory] = useState<Record<string, string[]>>({});
   const [tagGroups, setTagGroups] = useState(initialTagGroups);
+  const [categoriesAddedToAttractions, setCategoriesAddedToAttractions] = useState<string[]>([]);
   const [sidebarMinimized, setSidebarMinimized] = useState(false);
   const [numberOfPlaces, setNumberOfPlaces] = useState(20);
   // Second slider: 1-20 km, default 5
@@ -145,9 +146,16 @@ export default function Page() {
     setCategoryDetailsVisible(false);
     setSelectedCategoryForDetails('');
     setSelectedTagsInCategory({});
+    setCategoriesAddedToAttractions([]);
     setReportVisible(false);
     setReportContent('');
     setReportMinimized(false);
+  };
+
+  const handleReturnToMainFromEdit = () => {
+    setCategoryModalVisible(false);
+    setEditAttractionsMode(false);
+    setModalVisible(true);
   };
 
   const minimizeSidePanel = () => {
@@ -298,6 +306,24 @@ export default function Page() {
             Attractions: [...currentAttractionsTags, ...newTags]
           };
         });
+        
+        // Also make the new tags active/selected in the Attractions category
+        setSelectedTagsInCategory(prev => {
+          const currentAttractionsSelected = prev.Attractions || [];
+          const newTagsToSelect = selectedTags.filter(tag => !currentAttractionsSelected.includes(tag));
+          
+          return {
+            ...prev,
+            Attractions: [...currentAttractionsSelected, ...newTagsToSelect]
+          };
+        });
+        
+        // Track that this category has contributed to Attractions
+        setCategoriesAddedToAttractions(prev => 
+          prev.includes(selectedCategoryForDetails) 
+            ? prev 
+            : [...prev, selectedCategoryForDetails]
+        );
       }
     }
     setCategoryDetailsVisible(false);
@@ -329,6 +355,24 @@ export default function Page() {
           Attractions: [...currentAttractionsTags, ...newTags]
         };
       });
+      
+      // Also make ALL the new tags active/selected in the Attractions category
+      setSelectedTagsInCategory(prev => {
+        const currentAttractionsSelected = prev.Attractions || [];
+        const newTagsToSelect = allCategoryTags.filter(tag => !currentAttractionsSelected.includes(tag));
+        
+        return {
+          ...prev,
+          Attractions: [...currentAttractionsSelected, ...newTagsToSelect]
+        };
+      });
+      
+      // Track that this category has contributed to Attractions
+      setCategoriesAddedToAttractions(prev => 
+        prev.includes(categoryName) 
+          ? prev 
+          : [...prev, categoryName]
+      );
       
       // Still toggle the category selection for visual feedback
       setSelectedCategories(prev => 
@@ -561,6 +605,8 @@ export default function Page() {
         selectedTagsInCategory={selectedTagsInCategory}
         tagGroups={tagGroups}
         editAttractionsMode={editAttractionsMode}
+        categoriesAddedToAttractions={categoriesAddedToAttractions}
+        handleReturnToMainFromEdit={handleReturnToMainFromEdit}
       />
 
       {/* Address Search Modal */}

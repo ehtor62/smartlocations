@@ -12,6 +12,8 @@ interface CategoryModalProps {
   selectedTagsInCategory: Record<string, string[]>;
   tagGroups: Record<string, string[]>;
   editAttractionsMode?: boolean;
+  categoriesAddedToAttractions?: string[];
+  handleReturnToMainFromEdit?: () => void;
 }
 
 const CategoryModal: React.FC<CategoryModalProps> = ({
@@ -26,6 +28,8 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   selectedTagsInCategory,
   tagGroups,
   editAttractionsMode,
+  categoriesAddedToAttractions = [],
+  handleReturnToMainFromEdit,
 }) => {
   if (!visible) return null;
   return (
@@ -45,10 +49,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
         {/* Search Button */}
         <div className="mb-4 sm:mb-6 text-center">
           <button
-            onClick={handleMultiCategorySearch}
-            disabled={selectedCategories.length === 0 || loading}
+            onClick={editAttractionsMode && categoriesAddedToAttractions.length > 0 ? handleReturnToMainFromEdit : handleMultiCategorySearch}
+            disabled={(editAttractionsMode && categoriesAddedToAttractions.length === 0) || (!editAttractionsMode && selectedCategories.length === 0) || loading}
             className={`px-4 py-2 sm:px-8 sm:py-3 rounded-lg font-bold text-sm sm:text-lg transition-all duration-200 ${
-              selectedCategories.length === 0 
+              ((editAttractionsMode && categoriesAddedToAttractions.length === 0) || (!editAttractionsMode && selectedCategories.length === 0))
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
                 : 'bg-gradient-to-r from-green-500 to-blue-600 text-white hover:from-green-600 hover:to-blue-700 shadow-lg'
             }`}
@@ -56,13 +60,18 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
             {loading
               ? (editAttractionsMode ? 'Adding...' : 'Searching...')
               : (editAttractionsMode
-                  ? `Add ${selectedCategories.length} Categories`
+                  ? (categoriesAddedToAttractions.length > 0 
+                      ? `Added ${categoriesAddedToAttractions.length} Categories`
+                      : `Add ${selectedCategories.length} Categories`)
                   : `Find ${selectedCategories.length} Categories`)
             }
           </button>
-          {selectedCategories.length > 0 && (
+          {((editAttractionsMode && categoriesAddedToAttractions.length > 0) || (!editAttractionsMode && selectedCategories.length > 0)) && (
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
-              Selected: {selectedCategories.map(cat => cat.replace(/_/g, ' ')).join(', ')}
+              {editAttractionsMode && categoriesAddedToAttractions.length > 0
+                ? `Categories added to Attractions: ${categoriesAddedToAttractions.map(cat => cat.replace(/_/g, ' ')).join(', ')}`
+                : `Selected: ${selectedCategories.map(cat => cat.replace(/_/g, ' ')).join(', ')}`
+              }
             </p>
           )}
         </div>
