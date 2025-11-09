@@ -12,6 +12,9 @@ interface StartingModalProps {
   onButton2: () => void;
   onButton3: () => void;
   onDefineAttractions: () => void;
+  currentAttractions?: string[]; // Add this to see current attractions
+  categoriesAdded?: string[]; // Add this to see which categories were added
+  onResetAttractions?: () => void; // Add reset function
 }
 
 const StartingModal: React.FC<StartingModalProps> = ({
@@ -26,6 +29,9 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onButton2,
   onButton3,
   onDefineAttractions,
+  currentAttractions = [],
+  categoriesAdded = [],
+  onResetAttractions,
 }) => {
 
   if (!visible) return null;
@@ -103,12 +109,26 @@ const StartingModal: React.FC<StartingModalProps> = ({
               <label htmlFor="keep-location-checkbox" className="text-xs font-medium text-gray-700" style={{ minWidth: 110, marginLeft: 0 }}>Keep Location</label>
               <button
                 type="button"
-                className="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors hover:opacity-100 cursor-pointer"
+                className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors hover:opacity-100 cursor-pointer"
                 onClick={onDefineAttractions}
                 title="Define which tags are included as Attractions"
               >
                 My Attractions
               </button>
+              {onResetAttractions && (
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded border border-red-300 transition-colors hover:opacity-100 cursor-pointer"
+                  onClick={() => {
+                    if (window.confirm('Reset attractions to default? This will remove all custom attractions from Firebase.')) {
+                      onResetAttractions();
+                    }
+                  }}
+                  title="Reset attractions to default (removes custom attractions)"
+                >
+                  Reset Attractions
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 import dynamic from 'next/dynamic';
@@ -11,6 +11,8 @@ import CategoryDetailsModal from '../components/CategoryDetailsModal';
 import AddressSearchModal, { type AddressSuggestion } from '../components/AddressSearchModal';
 import StartingModal from '../components/StartingModal';
 import { tagGroups as initialTagGroups } from '../utils/allowedtags';
+import { saveUserAttractions, loadUserAttractions, resetUserAttractions } from '../utils/user-attractions';
+import { useFirebaseUser } from '../components/LoginModalOnLoadWrapper';
 
 // CSS for custom slider handles
 if (typeof document !== 'undefined') {
@@ -54,6 +56,17 @@ export interface Place {
 }
 
 export default function Page() {
+  // Get the current user from Firebase context
+  const user = useFirebaseUser();
+  
+  // Debug: Log user info
+  useEffect(() => {
+    if (user) {
+      console.log('Current user ID:', user.uid);
+      console.log('User email:', user.email);
+    }
+  }, [user]);
+  
   // State to track if CategoryModal is in Attractions edit mode
   const [editAttractionsMode, setEditAttractionsMode] = useState(false);
   // Handler for Define Attractions button
@@ -90,6 +103,36 @@ export default function Page() {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
   const [reportMinimized, setReportMinimized] = useState(false);
+
+  // Load user's custom attractions when user logs in
+  useEffect(() => {
+    if (user?.uid) {
+      console.log('Loading attractions for user:', user.uid); // Debug log
+      // Add a small delay to ensure Firebase is ready
+      const timer = setTimeout(() => {
+        loadUserAttractions(user.uid)
+          .then(({ tags, customCategories }) => {
+            console.log('Loaded attractions from Firebase:', { 
+              totalTags: tags.length, 
+              customCategories,
+              firstFewTags: tags.slice(0, 5),
+              allTags: tags 
+            });
+            setTagGroups(prev => ({
+              ...prev,
+              Attractions: tags
+            }));
+            setCategoriesAddedToAttractions(customCategories);
+          })
+          .catch((error) => {
+            console.error('Failed to load user attractions:', error);
+            // Continue with defaults - don't block the UI
+          });
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user?.uid]);
 
   const showReport = (report: string) => {
     console.log('showReport called with:', report);
@@ -147,9 +190,26 @@ export default function Page() {
     setSelectedCategoryForDetails('');
     setSelectedTagsInCategory({});
     setCategoriesAddedToAttractions([]);
+    // DO NOT reset tagGroups or Firebase data here - this is just a UI reset
     setReportVisible(false);
     setReportContent('');
     setReportMinimized(false);
+  };
+
+  const resetAttractionsToDefault = () => {
+    // This function specifically resets attractions - only call when user explicitly wants this
+    setCategoriesAddedToAttractions([]);
+    setTagGroups(initialTagGroups); // Reset tagGroups to initial state
+    
+    // Reset user attractions in Firebase if user is logged in (non-blocking)
+    if (user?.uid) {
+      setTimeout(() => {
+        resetUserAttractions(user.uid)
+          .catch(error => {
+            console.warn('Failed to reset attractions in Firebase (continuing with local reset):', error);
+          });
+      }, 0);
+    }
   };
 
   const handleReturnToMainFromEdit = () => {
@@ -300,10 +360,26 @@ export default function Page() {
         setTagGroups(prev => {
           const currentAttractionsTags = prev.Attractions || [];
           const newTags = selectedTags.filter(tag => !currentAttractionsTags.includes(tag));
+          const updatedAttractionsTags = [...currentAttractionsTags, ...newTags];
+          
+          // Save to Firebase if user is logged in (non-blocking)
+          if (user?.uid && newTags.length > 0) {
+            const updatedCategories = categoriesAddedToAttractions.includes(selectedCategoryForDetails) 
+              ? categoriesAddedToAttractions 
+              : [...categoriesAddedToAttractions, selectedCategoryForDetails];
+            
+            // Use setTimeout to make this non-blocking
+            setTimeout(() => {
+              saveUserAttractions(user.uid, updatedAttractionsTags, updatedCategories)
+                .catch(error => {
+                  console.warn('Failed to save attractions to Firebase (continuing with local state):', error);
+                });
+            }, 0);
+          }
           
           return {
             ...prev,
-            Attractions: [...currentAttractionsTags, ...newTags]
+            Attractions: updatedAttractionsTags
           };
         });
         
@@ -349,10 +425,26 @@ export default function Page() {
       setTagGroups(prev => {
         const currentAttractionsTags = prev.Attractions || [];
         const newTags = allCategoryTags.filter(tag => !currentAttractionsTags.includes(tag));
+        const updatedAttractionsTags = [...currentAttractionsTags, ...newTags];
+        
+        // Save to Firebase if user is logged in (non-blocking)
+        if (user?.uid && newTags.length > 0) {
+          const updatedCategories = categoriesAddedToAttractions.includes(categoryName) 
+            ? categoriesAddedToAttractions 
+            : [...categoriesAddedToAttractions, categoryName];
+          
+          // Use setTimeout to make this non-blocking
+          setTimeout(() => {
+            saveUserAttractions(user.uid, updatedAttractionsTags, updatedCategories)
+              .catch(error => {
+                console.warn('Failed to save attractions to Firebase (continuing with local state):', error);
+              });
+          }, 0);
+        }
         
         return {
           ...prev,
-          Attractions: [...currentAttractionsTags, ...newTags]
+          Attractions: updatedAttractionsTags
         };
       });
       
@@ -588,6 +680,9 @@ export default function Page() {
         onButton2={handleButton2}
         onButton3={handleButton3}
         onDefineAttractions={handleDefineAttractions}
+        currentAttractions={tagGroups.Attractions}
+        categoriesAdded={categoriesAddedToAttractions}
+        onResetAttractions={resetAttractionsToDefault}
       />
 
       <CategoryModal
