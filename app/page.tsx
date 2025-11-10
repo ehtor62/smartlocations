@@ -331,6 +331,45 @@ export default function Page() {
         ? currentTags.filter(t => t !== tag)
         : [...currentTags, tag];
       
+      // Special handling for Attractions in edit mode
+      if (editAttractionsMode && categoryName === 'Attractions') {
+        const isDeselecting = currentTags.includes(tag);
+        
+        if (isDeselecting) {
+          // Remove tag from Attractions tagGroups
+          setTagGroups(prevGroups => ({
+            ...prevGroups,
+            Attractions: prevGroups.Attractions.filter(t => t !== tag)
+          }));
+          
+          // Update categoriesAddedToAttractions - remove categories that no longer have tags
+          setCategoriesAddedToAttractions(prevCategories => {
+            const updatedAttractionsTags = tagGroups.Attractions.filter(t => t !== tag);
+            const remainingCategories = prevCategories.filter(cat => {
+              const categoryTags = initialTagGroups[cat as keyof typeof initialTagGroups] || [];
+              return categoryTags.some(catTag => updatedAttractionsTags.includes(catTag));
+            });
+            return remainingCategories;
+          });
+          
+          // Save to Firebase (non-blocking)
+          if (user?.uid) {
+            setTimeout(() => {
+              const updatedAttractionsTags = tagGroups.Attractions.filter(t => t !== tag);
+              const remainingCategories = categoriesAddedToAttractions.filter(cat => {
+                const categoryTags = initialTagGroups[cat as keyof typeof initialTagGroups] || [];
+                return categoryTags.some(catTag => updatedAttractionsTags.includes(catTag));
+              });
+              
+              saveUserAttractions(user.uid, updatedAttractionsTags, remainingCategories)
+                .catch(error => {
+                  console.warn('Failed to save updated attractions to Firebase:', error);
+                });
+            }, 0);
+          }
+        }
+      }
+      
       return {
         ...prev,
         [categoryName]: newTags
