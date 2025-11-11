@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 
 
@@ -79,7 +80,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
             {user ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {user.photoURL ? (
-                  <img src={user.photoURL} alt="User avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                  <Image src={user.photoURL} alt="User avatar" width={32} height={32} style={{ borderRadius: '50%' }} />
                 ) : (
                   <span style={{ fontSize: 24, marginRight: 4 }}>👤</span>
                 )}
@@ -174,31 +175,77 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                 const tags = Object.entries(p.tags);
                 const addressOrder = ['addr:postcode', 'addr:city', 'addr:street', 'addr:housenumber'];
                 
-                // Sort tags: address tags in specified order first, then other tags
-                const addressTags = addressOrder
-                  .map(addrKey => tags.find(([k]) => k === addrKey))
-                  .filter((tag): tag is [string, string] => tag !== undefined);
+                // Check if we have all address components for formatted address
+                const addressComponents = {
+                  postcode: p.tags['addr:postcode'],
+                  city: p.tags['addr:city'],
+                  street: p.tags['addr:street'],
+                  housenumber: p.tags['addr:housenumber']
+                };
                 
-                const otherTags = tags.filter(([k]) => !k.startsWith('addr:'));
+                const hasCompleteAddress = Object.values(addressComponents).every(v => v && v.trim());
                 
-                const sortedTags = [...addressTags, ...otherTags].slice(0, 5);
-                
-                return sortedTags.map(([k, v]) => (
-                  <div key={k} style={{ marginBottom: 2 }}>
-                    {k.startsWith('addr:') ? k.replace('addr:', '') : k}: {
-                      (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
-                        <a 
-                          href={v.startsWith('http') ? v : `https://${v}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                        >
-                          {v}
-                        </a>
-                      ) : v
-                    }
-                  </div>
-                ));
+                if (hasCompleteAddress) {
+                  // Format as "Main Street 42, 12345 Berlin"
+                  const formattedAddress = `${addressComponents.street} ${addressComponents.housenumber}, ${addressComponents.postcode} ${addressComponents.city}`;
+                  
+                  // Get other non-address tags
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:')).slice(0, 4); // Limit to 4 since we have address
+                  
+                  return (
+                    <>
+                      <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
+                        📍 {formattedAddress}
+                      </div>
+                      {otherTags.map(([k, v]) => (
+                        <div key={k} style={{ marginBottom: 2 }}>
+                          {k}: {
+                            (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              <a 
+                                href={v.startsWith('http') ? v : `https://${v}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                              >
+                                {v}
+                              </a>
+                            ) : v
+                          }
+                        </div>
+                      ))}
+                    </>
+                  );
+                } else {
+                  // Fall back to original format if incomplete address
+                  const addressTags = addressOrder
+                    .map(addrKey => tags.find(([k]) => k === addrKey))
+                    .filter((tag): tag is [string, string] => tag !== undefined);
+                  
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:'));
+                  
+                  const sortedTags = [...addressTags, ...otherTags].slice(0, 5);
+                  
+                  return (
+                    <>
+                      {sortedTags.map(([k, v]) => (
+                        <div key={k} style={{ marginBottom: 2 }}>
+                          {k.startsWith('addr:') ? k.replace('addr:', '') : k}: {
+                            (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              <a 
+                                href={v.startsWith('http') ? v : `https://${v}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                              >
+                                {v}
+                              </a>
+                            ) : v
+                          }
+                        </div>
+                      ))}
+                    </>
+                  );
+                }
               })()}
             </div>
             <div style={{ 
