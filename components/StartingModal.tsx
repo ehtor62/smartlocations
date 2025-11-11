@@ -29,8 +29,6 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onButton2,
   onButton3,
   onDefineAttractions,
-  currentAttractions = [],
-  categoriesAdded = [],
   onResetAttractions,
 }) => {
 

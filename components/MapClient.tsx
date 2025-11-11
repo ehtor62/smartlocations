@@ -157,8 +157,7 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
         <div style={{
           position: 'absolute',
           top: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          left: 16,
           zIndex: 2000,
           background: 'rgba(255,255,255,0.95)',
           borderRadius: 24,
