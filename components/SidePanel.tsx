@@ -243,7 +243,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     .map(addrKey => tags.find(([k]) => k === addrKey))
                     .filter((tag): tag is [string, string] => tag !== undefined);
                   
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && k !== 'name' && k !== 'wheelchair');
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && !k.startsWith('ref:') && k !== 'name' && k !== 'wheelchair');
                   
                   // Check if we have both street and housenumber to combine them
                   const streetTag = addressTags.find(([k]) => k === 'addr:street');
@@ -296,13 +296,59 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                         return true;
                       });
                     }
-                  } else if (streetTag && houseNumberTag) {
-                    // Only create combined street address if we don't have contact address
-                    combinedStreetAddress = {
-                      key: 'combined_street',
-                      value: `${streetTag[1]} ${houseNumberTag[1]}`
-                    };
-                    processedAddressTags = addressTags.filter(([k]) => k !== 'addr:street' && k !== 'addr:housenumber');
+                  } else {
+                    // Check for any addr: components to combine them
+                    const cityTag = addressTags.find(([k]) => k === 'addr:city');
+                    const postcodeTag = addressTags.find(([k]) => k === 'addr:postcode');
+                    
+                    // Create combined address if we have multiple addr components
+                    if ((streetTag || houseNumberTag || cityTag || postcodeTag) && 
+                        (streetTag && (houseNumberTag || cityTag || postcodeTag)) || 
+                        (cityTag && postcodeTag)) {
+                      
+                      const addressParts: string[] = [];
+                      
+                      // Add housenumber and street
+                      if (houseNumberTag && streetTag) {
+                        addressParts.push(`${houseNumberTag[1]} ${streetTag[1]}`);
+                      } else if (streetTag) {
+                        addressParts.push(streetTag[1]);
+                      } else if (houseNumberTag) {
+                        addressParts.push(houseNumberTag[1]);
+                      }
+                      
+                      // Add city and postcode
+                      if (cityTag && postcodeTag) {
+                        addressParts.push(`${cityTag[1]} ${postcodeTag[1]}`);
+                      } else if (cityTag) {
+                        addressParts.push(cityTag[1]);
+                      } else if (postcodeTag) {
+                        addressParts.push(postcodeTag[1]);
+                      }
+                      
+                      if (addressParts.length > 0) {
+                        combinedStreetAddress = {
+                          key: 'combined_addr',
+                          value: addressParts.join(', ')
+                        };
+                        
+                        // Filter out the combined address components
+                        processedAddressTags = processedAddressTags.filter(([k]) => {
+                          if (streetTag && k === 'addr:street') return false;
+                          if (houseNumberTag && k === 'addr:housenumber') return false;
+                          if (cityTag && k === 'addr:city') return false;
+                          if (postcodeTag && k === 'addr:postcode') return false;
+                          return true;
+                        });
+                      }
+                    } else if (streetTag && houseNumberTag) {
+                      // Fallback to original simple combination
+                      combinedStreetAddress = {
+                        key: 'combined_street',
+                        value: `${streetTag[1]} ${houseNumberTag[1]}`
+                      };
+                      processedAddressTags = addressTags.filter(([k]) => k !== 'addr:street' && k !== 'addr:housenumber');
+                    }
                   }
                   
                   const sortedTags = [...processedAddressTags, ...otherTags].slice(0, 5);
@@ -330,15 +376,21 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                             >
                               {`www.wikidata.org/wiki/${v}`}
                             </a>
-                          ) : k === 'wikipedia' && typeof v === 'string' && v.startsWith('de:') ? (
-                            <a 
-                              href={`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                            >
-                              {`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`}
-                            </a>
+                          ) : k === 'wikipedia' && typeof v === 'string' && (v.startsWith('de:') || v.startsWith('es:')) ? (
+                            (() => {
+                              const langCode = v.substring(0, 2);
+                              const title = v.substring(3).replace(/ /g, '_');
+                              return (
+                                <a 
+                                  href={`https://${langCode}.wikipedia.org/wiki/${title}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                >
+                                  {`https://${langCode}.wikipedia.org/wiki/${title}`}
+                                </a>
+                              );
+                            })()
                           ) : k.startsWith('addr:') ? (
                             <div style={{ fontWeight: 500, color: '#059669' }}>
                               📍 {k.replace('addr:', '')}: {v}

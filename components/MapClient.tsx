@@ -281,31 +281,184 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
                   const tags = Object.entries(p.tags || {});
                   const addressOrder = ['addr:postcode', 'addr:city', 'addr:street', 'addr:housenumber'];
                   
+                  // Filter out redundant tags
+                  const filteredTags = tags.filter(([k]) => k !== 'name' && k !== 'wheelchair' && !k.startsWith('ref:'));
+                  
                   // Sort tags: address tags in specified order first, then other tags
                   const addressTags = addressOrder
-                    .map(addrKey => tags.find(([k]) => k === addrKey))
+                    .map(addrKey => filteredTags.find(([k]) => k === addrKey))
                     .filter((tag): tag is [string, string] => tag !== undefined);
                   
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:'));
+                  const otherTags = filteredTags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:'));
                   
-                  const sortedTags = [...addressTags, ...otherTags].slice(0, 5);
+                  // Check for contact address components
+                  const contactStreetTag = filteredTags.find(([k]) => k === 'contact:street');
+                  const contactHouseNumberTag = filteredTags.find(([k]) => k === 'contact:housenumber');
+                  const contactCityTag = filteredTags.find(([k]) => k === 'contact:city');
+                  const contactPostcodeTag = filteredTags.find(([k]) => k === 'contact:postcode');
                   
-                  return sortedTags.map(([k, v]) => (
-                    <div key={k}>
-                      {k.startsWith('addr:') ? k.replace('addr:', '') : k}: {
-                        (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
-                          <a 
-                            href={v.startsWith('http') ? v : `https://${v}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                          >
-                            {v}
-                          </a>
-                        ) : v
+                  let processedAddressTags = addressTags;
+                  let combinedStreetAddress = null;
+                  let combinedContactAddress = null;
+                  
+                  // Combine contact address if we have components
+                  if (contactStreetTag || contactHouseNumberTag || contactCityTag || contactPostcodeTag) {
+                    const addressParts: string[] = [];
+                    
+                    // Add housenumber and street
+                    if (contactHouseNumberTag && contactStreetTag) {
+                      addressParts.push(`${contactHouseNumberTag[1]} ${contactStreetTag[1]}`);
+                    } else if (contactStreetTag) {
+                      addressParts.push(contactStreetTag[1]);
+                    } else if (contactHouseNumberTag) {
+                      addressParts.push(contactHouseNumberTag[1]);
+                    }
+                    
+                    // Add city and postcode
+                    if (contactCityTag && contactPostcodeTag) {
+                      addressParts.push(`${contactCityTag[1]} ${contactPostcodeTag[1]}`);
+                    } else if (contactCityTag) {
+                      addressParts.push(contactCityTag[1]);
+                    } else if (contactPostcodeTag) {
+                      addressParts.push(contactPostcodeTag[1]);
+                    }
+                    
+                    if (addressParts.length > 0) {
+                      combinedContactAddress = {
+                        key: 'combined_contact',
+                        value: addressParts.join(', ')
+                      };
+                      
+                      // Filter out corresponding addr: fields to prevent duplication
+                      processedAddressTags = processedAddressTags.filter(([k]) => {
+                        if (contactStreetTag && k === 'addr:street') return false;
+                        if (contactHouseNumberTag && k === 'addr:housenumber') return false;
+                        if (contactCityTag && k === 'addr:city') return false;
+                        if (contactPostcodeTag && k === 'addr:postcode') return false;
+                        return true;
+                      });
+                    }
+                  } else {
+                    // Check for any addr: components to combine them
+                    const streetTag = addressTags.find(([k]) => k === 'addr:street');
+                    const houseNumberTag = addressTags.find(([k]) => k === 'addr:housenumber');
+                    const cityTag = addressTags.find(([k]) => k === 'addr:city');
+                    const postcodeTag = addressTags.find(([k]) => k === 'addr:postcode');
+                    
+                    // Create combined address if we have multiple addr components
+                    if ((streetTag || houseNumberTag || cityTag || postcodeTag) && 
+                        (streetTag && (houseNumberTag || cityTag || postcodeTag)) || 
+                        (cityTag && postcodeTag)) {
+                      
+                      const addressParts: string[] = [];
+                      
+                      // Add housenumber and street
+                      if (houseNumberTag && streetTag) {
+                        addressParts.push(`${houseNumberTag[1]} ${streetTag[1]}`);
+                      } else if (streetTag) {
+                        addressParts.push(streetTag[1]);
+                      } else if (houseNumberTag) {
+                        addressParts.push(houseNumberTag[1]);
                       }
-                    </div>
-                  ));
+                      
+                      // Add city and postcode
+                      if (cityTag && postcodeTag) {
+                        addressParts.push(`${cityTag[1]} ${postcodeTag[1]}`);
+                      } else if (cityTag) {
+                        addressParts.push(cityTag[1]);
+                      } else if (postcodeTag) {
+                        addressParts.push(postcodeTag[1]);
+                      }
+                      
+                      if (addressParts.length > 0) {
+                        combinedStreetAddress = {
+                          key: 'combined_addr',
+                          value: addressParts.join(', ')
+                        };
+                        
+                        // Filter out the combined address components
+                        processedAddressTags = processedAddressTags.filter(([k]) => {
+                          if (streetTag && k === 'addr:street') return false;
+                          if (houseNumberTag && k === 'addr:housenumber') return false;
+                          if (cityTag && k === 'addr:city') return false;
+                          if (postcodeTag && k === 'addr:postcode') return false;
+                          return true;
+                        });
+                      }
+                    } else if (streetTag && houseNumberTag) {
+                      // Fallback to original simple combination
+                      combinedStreetAddress = {
+                        key: 'combined_street',
+                        value: `${streetTag[1]} ${houseNumberTag[1]}`
+                      };
+                      processedAddressTags = processedAddressTags.filter(([k]) => k !== 'addr:street' && k !== 'addr:housenumber');
+                    }
+                  }
+                  
+                  const sortedTags = [...processedAddressTags, ...otherTags].slice(0, 5);
+                  
+                  return (
+                    <>
+                      {combinedStreetAddress && (
+                        <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
+                          📍 {combinedStreetAddress.value}
+                        </div>
+                      )}
+                      {combinedContactAddress && (
+                        <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
+                          📍 {combinedContactAddress.value}
+                        </div>
+                      )}
+                      {sortedTags.map(([k, v]) => (
+                        <div key={k} style={{ marginBottom: 2 }}>
+                          {k === 'wikidata' && typeof v === 'string' ? (
+                            <a 
+                              href={`https://www.wikidata.org/wiki/${v}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            >
+                              {`www.wikidata.org/wiki/${v}`}
+                            </a>
+                          ) : k === 'wikipedia' && typeof v === 'string' && (v.startsWith('de:') || v.startsWith('es:')) ? (
+                            (() => {
+                              const langCode = v.substring(0, 2);
+                              const title = v.substring(3).replace(/ /g, '_');
+                              return (
+                                <a 
+                                  href={`https://${langCode}.wikipedia.org/wiki/${title}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                >
+                                  {`https://${langCode}.wikipedia.org/wiki/${title}`}
+                                </a>
+                              );
+                            })()
+                          ) : k.startsWith('addr:') ? (
+                            <div style={{ fontWeight: 500, color: '#059669' }}>
+                              📍 {k.replace('addr:', '')}: {v}
+                            </div>
+                          ) : (
+                            <>
+                              {k === 'alt_name' ? 'aka' : k === 'check_date' ? 'last checked' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}` : k}: {
+                                (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                                  <a 
+                                    href={v.startsWith('http') ? v : `https://${v}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                  >
+                                    {v}
+                                  </a>
+                                ) : v
+                              }
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </>
+                  );
                 })()}
               </div>
               <div style={{ fontSize: 11, marginTop: 6, color: '#16a34a' }}>Distance: {Math.round(p.distance_m)} m</div>
