@@ -189,8 +189,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   // Format as "Main Street 42, 12345 Berlin"
                   const formattedAddress = `${addressComponents.street} ${addressComponents.housenumber}, ${addressComponents.postcode} ${addressComponents.city}`;
                   
-                  // Get other non-address tags
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:')).slice(0, 4); // Limit to 4 since we have address
+                  // Get other non-address tags (exclude 'name' since it's already shown as title, exclude 'wheelchair')
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && k !== 'name' && k !== 'wheelchair').slice(0, 4); // Limit to 4 since we have address
                   
                   return (
                     <>
@@ -199,18 +199,40 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       </div>
                       {otherTags.map(([k, v]) => (
                         <div key={k} style={{ marginBottom: 2 }}>
-                          {k}: {
-                            (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
-                              <a 
-                                href={v.startsWith('http') ? v : `https://${v}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                              >
-                                {v}
-                              </a>
-                            ) : v
-                          }
+                          {k === 'wikidata' && typeof v === 'string' ? (
+                            <a 
+                              href={`https://www.wikidata.org/wiki/${v}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            >
+                              {`www.wikidata.org/wiki/${v}`}
+                            </a>
+                          ) : k === 'wikipedia' && typeof v === 'string' && v.startsWith('de:') ? (
+                            <a 
+                              href={`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            >
+                              {`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`}
+                            </a>
+                          ) : (
+                            <>
+                              {k === 'alt_name' ? 'aka' : k === 'check_date' ? 'last checked' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}` : k}: {
+                                (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                                  <a 
+                                    href={v.startsWith('http') ? v : `https://${v}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                  >
+                                    {v}
+                                  </a>
+                                ) : v
+                              }
+                            </>
+                          )}
                         </div>
                       ))}
                     </>
@@ -221,26 +243,73 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     .map(addrKey => tags.find(([k]) => k === addrKey))
                     .filter((tag): tag is [string, string] => tag !== undefined);
                   
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:'));
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && k !== 'name' && k !== 'wheelchair');
                   
-                  const sortedTags = [...addressTags, ...otherTags].slice(0, 5);
+                  // Check if we have both street and housenumber to combine them
+                  const streetTag = addressTags.find(([k]) => k === 'addr:street');
+                  const houseNumberTag = addressTags.find(([k]) => k === 'addr:housenumber');
+                  
+                  let processedAddressTags = addressTags;
+                  let combinedStreetAddress = null;
+                  
+                  if (streetTag && houseNumberTag) {
+                    // Create combined street address and filter out individual components
+                    combinedStreetAddress = {
+                      key: 'combined_street',
+                      value: `${streetTag[1]} ${houseNumberTag[1]}`
+                    };
+                    processedAddressTags = addressTags.filter(([k]) => k !== 'addr:street' && k !== 'addr:housenumber');
+                  }
+                  
+                  const sortedTags = [...processedAddressTags, ...otherTags].slice(0, 5);
                   
                   return (
                     <>
+                      {combinedStreetAddress && (
+                        <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
+                          📍 {combinedStreetAddress.value}
+                        </div>
+                      )}
                       {sortedTags.map(([k, v]) => (
                         <div key={k} style={{ marginBottom: 2 }}>
-                          {k.startsWith('addr:') ? k.replace('addr:', '') : k}: {
-                            (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
-                              <a 
-                                href={v.startsWith('http') ? v : `https://${v}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                              >
-                                {v}
-                              </a>
-                            ) : v
-                          }
+                          {k === 'wikidata' && typeof v === 'string' ? (
+                            <a 
+                              href={`https://www.wikidata.org/wiki/${v}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            >
+                              {`www.wikidata.org/wiki/${v}`}
+                            </a>
+                          ) : k === 'wikipedia' && typeof v === 'string' && v.startsWith('de:') ? (
+                            <a 
+                              href={`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            >
+                              {`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`}
+                            </a>
+                          ) : k.startsWith('addr:') ? (
+                            <div style={{ fontWeight: 500, color: '#059669' }}>
+                              📍 {k.replace('addr:', '')}: {v}
+                            </div>
+                          ) : (
+                            <>
+                              {k === 'alt_name' ? 'aka' : k === 'check_date' ? 'last checked' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}` : k}: {
+                                (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                                  <a 
+                                    href={v.startsWith('http') ? v : `https://${v}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                  >
+                                    {v}
+                                  </a>
+                                ) : v
+                              }
+                            </>
+                          )}
                         </div>
                       ))}
                     </>
