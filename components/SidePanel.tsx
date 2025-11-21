@@ -100,7 +100,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   fontSize: sidebarWidth < 300 ? 10 : 12
                 }}
               >
-                − Minimize
+                View Map
               </button>
               <button 
                 onClick={onClose}
