@@ -243,17 +243,61 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     .map(addrKey => tags.find(([k]) => k === addrKey))
                     .filter((tag): tag is [string, string] => tag !== undefined);
                   
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && k !== 'name' && k !== 'wheelchair');
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && k !== 'name' && k !== 'wheelchair');
                   
                   // Check if we have both street and housenumber to combine them
                   const streetTag = addressTags.find(([k]) => k === 'addr:street');
                   const houseNumberTag = addressTags.find(([k]) => k === 'addr:housenumber');
                   
+                  // Check for contact address components
+                  const contactStreetTag = tags.find(([k]) => k === 'contact:street');
+                  const contactHouseNumberTag = tags.find(([k]) => k === 'contact:housenumber');
+                  const contactCityTag = tags.find(([k]) => k === 'contact:city');
+                  const contactPostcodeTag = tags.find(([k]) => k === 'contact:postcode');
+                  
                   let processedAddressTags = addressTags;
                   let combinedStreetAddress = null;
+                  let combinedContactAddress = null;
                   
-                  if (streetTag && houseNumberTag) {
-                    // Create combined street address and filter out individual components
+                  // Combine contact address if we have components
+                  if (contactStreetTag || contactHouseNumberTag || contactCityTag || contactPostcodeTag) {
+                    const addressParts: string[] = [];
+                    
+                    // Add housenumber and street
+                    if (contactHouseNumberTag && contactStreetTag) {
+                      addressParts.push(`${contactHouseNumberTag[1]} ${contactStreetTag[1]}`);
+                    } else if (contactStreetTag) {
+                      addressParts.push(contactStreetTag[1]);
+                    } else if (contactHouseNumberTag) {
+                      addressParts.push(contactHouseNumberTag[1]);
+                    }
+                    
+                    // Add city and postcode
+                    if (contactCityTag && contactPostcodeTag) {
+                      addressParts.push(`${contactCityTag[1]} ${contactPostcodeTag[1]}`);
+                    } else if (contactCityTag) {
+                      addressParts.push(contactCityTag[1]);
+                    } else if (contactPostcodeTag) {
+                      addressParts.push(contactPostcodeTag[1]);
+                    }
+                    
+                    if (addressParts.length > 0) {
+                      combinedContactAddress = {
+                        key: 'combined_contact',
+                        value: addressParts.join(', ')
+                      };
+                      
+                      // Filter out corresponding addr: fields to prevent duplication
+                      processedAddressTags = processedAddressTags.filter(([k]) => {
+                        if (contactStreetTag && k === 'addr:street') return false;
+                        if (contactHouseNumberTag && k === 'addr:housenumber') return false;
+                        if (contactCityTag && k === 'addr:city') return false;
+                        if (contactPostcodeTag && k === 'addr:postcode') return false;
+                        return true;
+                      });
+                    }
+                  } else if (streetTag && houseNumberTag) {
+                    // Only create combined street address if we don't have contact address
                     combinedStreetAddress = {
                       key: 'combined_street',
                       value: `${streetTag[1]} ${houseNumberTag[1]}`
@@ -268,6 +312,11 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       {combinedStreetAddress && (
                         <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
                           📍 {combinedStreetAddress.value}
+                        </div>
+                      )}
+                      {combinedContactAddress && (
+                        <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
+                          📍 {combinedContactAddress.value}
                         </div>
                       )}
                       {sortedTags.map(([k, v]) => (
