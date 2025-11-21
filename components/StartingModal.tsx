@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface StartingModalProps {
   visible: boolean;
@@ -31,6 +31,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onDefineAttractions,
   onResetAttractions,
 }) => {
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   if (!visible) return null;
   return (
@@ -117,11 +118,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
                 <button
                   type="button"
                   className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded border border-red-300 transition-colors hover:opacity-100 cursor-pointer"
-                  onClick={() => {
-                    if (window.confirm('Reset attractions to default? This will remove all custom attractions from Firebase.')) {
-                      onResetAttractions();
-                    }
-                  }}
+                  onClick={() => setShowResetConfirm(true)}
                   title="Reset attractions to default (removes custom attractions)"
                 >
                   Reset Favorites
@@ -131,6 +128,54 @@ const StartingModal: React.FC<StartingModalProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Beautiful Reset Confirmation Modal */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center z-[2000] p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-500 to-pink-500 px-6 py-4">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+                  <span className="text-white text-lg">⚠️</span>
+                </div>
+                <h3 className="text-xl font-bold text-white">Reset Favorites</h3>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="px-6 py-6">
+              <p className="text-gray-700 text-base leading-relaxed mb-2">
+                Are you sure you want to reset your Favorites to default?
+              </p>
+              <p className="text-sm text-gray-500">
+                This will remove all your custom favorites and restore the original tourism attractions setting.
+              </p>
+            </div>
+            
+            {/* Buttons */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowResetConfirm(false);
+                  if (onResetAttractions) {
+                    onResetAttractions();
+                  }
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+              >
+                Reset Favorites
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
