@@ -38,7 +38,7 @@ export const tagGroups = {
     'aeroway:terminal',
     'building:hangar',
   ],
-  Attractions: [
+  Favorites: [
     'tourism:attraction',
   ],
   Bikes: [

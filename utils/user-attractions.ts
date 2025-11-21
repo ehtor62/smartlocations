@@ -50,13 +50,13 @@ export const loadUserAttractions = async (userId: string): Promise<{ tags: strin
       const data = docSnap.data() as UserAttractionsData;
       console.log('Loaded user attractions from Firestore');
       return {
-        tags: data.tags || defaultTagGroups.Attractions,
+        tags: data.tags || defaultTagGroups.Favorites,
         customCategories: data.customCategories || []
       };
     } else {
       console.log('No custom attractions found, using defaults');
       return {
-        tags: defaultTagGroups.Attractions,
+        tags: defaultTagGroups.Favorites,
         customCategories: []
       };
     }
@@ -73,7 +73,7 @@ export const loadUserAttractions = async (userId: string): Promise<{ tags: strin
     
     // Fallback to defaults on any error
     return {
-      tags: defaultTagGroups.Attractions,
+      tags: defaultTagGroups.Favorites,
       customCategories: []
     };
   }
@@ -87,7 +87,7 @@ export const resetUserAttractions = async (userId: string): Promise<void> => {
     const userAttractionsRef = doc(db, 'users', userId, 'preferences', 'attractions');
     
     const data: UserAttractionsData = {
-      tags: defaultTagGroups.Attractions,
+      tags: defaultTagGroups.Favorites,
       lastUpdated: new Date(),
       customCategories: []
     };

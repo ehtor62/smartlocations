@@ -37,7 +37,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
       <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-sm sm:max-w-4xl max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-bold text-lg sm:text-2xl">
-            {editAttractionsMode ? 'Add Categories or Tags to Attractions' : 'Choose Categories'}
+            {editAttractionsMode ? 'Add Categories or Tags to Favorites' : 'Choose Categories'}
           </h2>
           <button 
             onClick={resetAppToInitialState}
@@ -69,7 +69,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
           {((editAttractionsMode && categoriesAddedToAttractions.length > 0) || (!editAttractionsMode && selectedCategories.length > 0)) && (
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
               {editAttractionsMode && categoriesAddedToAttractions.length > 0
-                ? `Categories added to Attractions: ${categoriesAddedToAttractions.map(cat => cat.replace(/_/g, ' ')).join(', ')}`
+                ? `Categories added to Favorites: ${categoriesAddedToAttractions.map(cat => cat.replace(/_/g, ' ')).join(', ')}`
                 : `Selected: ${selectedCategories.map(cat => cat.replace(/_/g, ' ')).join(', ')}`
               }
             </p>
@@ -97,7 +97,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 }`}
               >
                 {/* + sign in edit mode, except for Attractions */}
-                {editAttractionsMode && category !== 'Attractions' && (
+                {editAttractionsMode && category !== 'Favorites' && (
                   <span className="absolute top-1 left-1 z-10 flex items-center justify-center w-5 h-5 bg-white border-2 border-red-500 rounded-full shadow text-red-600 text-base font-bold select-none pointer-events-none">
                     +
                   </span>
@@ -120,10 +120,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                   className="px-1 py-2 md:px-2 md:py-3 rounded-r-lg text-xs sm:text-sm border-l border-white/20 bg-black/20 hover:bg-black/30 transition-all duration-200"
                   disabled={loading}
                   style={{ width: '33.33%' }}
-                  title={editAttractionsMode ? (category === 'Attractions' ? `View Attractions details` : `Add tags from ${category.replace(/_/g, ' ')}`) : `View ${category.replace(/_/g, ' ')} details`}
+                  title={editAttractionsMode ? (category === 'Favorites' ? `View Favorites details` : `Add tags from ${category.replace(/_/g, ' ')}`) : `View ${category.replace(/_/g, ' ')} details`}
                 >
                   {editAttractionsMode
-                    ? (category === 'Attractions' ? 'ℹ️' : <span className="text-red-600 text-lg font-bold">+</span>)
+                    ? (category === 'Favorites' ? 'ℹ️' : <span className="text-red-600 text-lg font-bold">+</span>)
                     : 'ℹ️'}
                 </button>
               </div>

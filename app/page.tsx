@@ -120,7 +120,7 @@ export default function Page() {
             });
             setTagGroups(prev => ({
               ...prev,
-              Attractions: tags
+              Favorites: tags
             }));
             setCategoriesAddedToAttractions(customCategories);
           })
@@ -200,6 +200,8 @@ export default function Page() {
     // This function specifically resets attractions - only call when user explicitly wants this
     setCategoriesAddedToAttractions([]);
     setTagGroups(initialTagGroups); // Reset tagGroups to initial state
+    setSelectedTagsInCategory({}); // Clear all selected/highlighted tags in categories
+    setSelectedCategories([]); // Clear category selection highlighting (blue-purple color)
     
     // Reset user attractions in Firebase if user is logged in (non-blocking)
     if (user?.uid) {
@@ -250,7 +252,7 @@ export default function Page() {
       try {
         // Use Nature and Culture tags from allowedtags.ts
         const tags = [
-          ...tagGroups.Attractions.map(tag => tag.replace(':', '=')),
+          ...tagGroups.Favorites.map(tag => tag.replace(':', '=')),
           
         ];
 
@@ -332,19 +334,19 @@ export default function Page() {
         : [...currentTags, tag];
       
       // Special handling for Attractions in edit mode
-      if (editAttractionsMode && categoryName === 'Attractions') {
+      if (editAttractionsMode && categoryName === 'Favorites') {
         const isDeselecting = currentTags.includes(tag);
         
         if (isDeselecting) {
-          // Remove tag from Attractions tagGroups
+          // Remove tag from Favorites tagGroups
           setTagGroups(prevGroups => ({
             ...prevGroups,
-            Attractions: prevGroups.Attractions.filter(t => t !== tag)
+            Favorites: prevGroups.Favorites.filter(t => t !== tag)
           }));
           
           // Update categoriesAddedToAttractions - remove categories that no longer have tags
           setCategoriesAddedToAttractions(prevCategories => {
-            const updatedAttractionsTags = tagGroups.Attractions.filter(t => t !== tag);
+            const updatedAttractionsTags = tagGroups.Favorites.filter(t => t !== tag);
             const remainingCategories = prevCategories.filter(cat => {
               const categoryTags = initialTagGroups[cat as keyof typeof initialTagGroups] || [];
               return categoryTags.some(catTag => updatedAttractionsTags.includes(catTag));
@@ -355,7 +357,7 @@ export default function Page() {
           // Save to Firebase (non-blocking)
           if (user?.uid) {
             setTimeout(() => {
-              const updatedAttractionsTags = tagGroups.Attractions.filter(t => t !== tag);
+              const updatedAttractionsTags = tagGroups.Favorites.filter(t => t !== tag);
               const remainingCategories = categoriesAddedToAttractions.filter(cat => {
                 const categoryTags = initialTagGroups[cat as keyof typeof initialTagGroups] || [];
                 return categoryTags.some(catTag => updatedAttractionsTags.includes(catTag));
@@ -392,14 +394,19 @@ export default function Page() {
       }
       
       // If in edit attractions mode and not selecting from Attractions category itself
-      if (editAttractionsMode && selectedCategoryForDetails !== 'Attractions') {
+      if (editAttractionsMode && selectedCategoryForDetails !== 'Favorites') {
         const selectedTags = selectedTagsInCategory[selectedCategoryForDetails] || tagGroups[selectedCategoryForDetails as keyof typeof tagGroups] || [];
         
-        // Add selected tags to Attractions category
+        // Add selected tags to Favorites category
         setTagGroups(prev => {
-          const currentAttractionsTags = prev.Attractions || [];
+          const currentAttractionsTags = prev.Favorites || [];
           const newTags = selectedTags.filter(tag => !currentAttractionsTags.includes(tag));
-          const updatedAttractionsTags = [...currentAttractionsTags, ...newTags];
+          
+          // Remove default tourism:attraction tag if we're adding the first custom tag
+          let updatedAttractionsTags = [...currentAttractionsTags, ...newTags];
+          if (newTags.length > 0 && currentAttractionsTags.includes('tourism:attraction') && currentAttractionsTags.length === 1) {
+            updatedAttractionsTags = newTags; // Replace default with new tags
+          }
           
           // Save to Firebase if user is logged in (non-blocking)
           if (user?.uid && newTags.length > 0) {
@@ -418,18 +425,18 @@ export default function Page() {
           
           return {
             ...prev,
-            Attractions: updatedAttractionsTags
+            Favorites: updatedAttractionsTags
           };
         });
         
-        // Also make the new tags active/selected in the Attractions category
+        // Also make the new tags active/selected in the Favorites category
         setSelectedTagsInCategory(prev => {
-          const currentAttractionsSelected = prev.Attractions || [];
+          const currentAttractionsSelected = prev.Favorites || [];
           const newTagsToSelect = selectedTags.filter(tag => !currentAttractionsSelected.includes(tag));
           
           return {
             ...prev,
-            Attractions: [...currentAttractionsSelected, ...newTagsToSelect]
+            Favorites: [...currentAttractionsSelected, ...newTagsToSelect]
           };
         });
         
@@ -457,14 +464,19 @@ export default function Page() {
 
   const toggleCategory = (categoryName: string) => {
     // If in edit attractions mode and not selecting Attractions itself
-    if (editAttractionsMode && categoryName !== 'Attractions') {
+    if (editAttractionsMode && categoryName !== 'Favorites') {
       // Add ALL tags from this category to Attractions
       const allCategoryTags = tagGroups[categoryName as keyof typeof tagGroups] || [];
       
       setTagGroups(prev => {
-        const currentAttractionsTags = prev.Attractions || [];
+        const currentAttractionsTags = prev.Favorites || [];
         const newTags = allCategoryTags.filter(tag => !currentAttractionsTags.includes(tag));
-        const updatedAttractionsTags = [...currentAttractionsTags, ...newTags];
+        
+        // Remove default tourism:attraction tag if we're adding the first custom tag
+        let updatedAttractionsTags = [...currentAttractionsTags, ...newTags];
+        if (newTags.length > 0 && currentAttractionsTags.includes('tourism:attraction') && currentAttractionsTags.length === 1) {
+          updatedAttractionsTags = newTags; // Replace default with new tags
+        }
         
         // Save to Firebase if user is logged in (non-blocking)
         if (user?.uid && newTags.length > 0) {
@@ -483,18 +495,18 @@ export default function Page() {
         
         return {
           ...prev,
-          Attractions: updatedAttractionsTags
+          Favorites: updatedAttractionsTags
         };
       });
       
-      // Also make ALL the new tags active/selected in the Attractions category
+      // Also make ALL the new tags active/selected in the Favorites category
       setSelectedTagsInCategory(prev => {
-        const currentAttractionsSelected = prev.Attractions || [];
+        const currentAttractionsSelected = prev.Favorites || [];
         const newTagsToSelect = allCategoryTags.filter(tag => !currentAttractionsSelected.includes(tag));
         
         return {
           ...prev,
-          Attractions: [...currentAttractionsSelected, ...newTagsToSelect]
+          Favorites: [...currentAttractionsSelected, ...newTagsToSelect]
         };
       });
       
@@ -719,7 +731,7 @@ export default function Page() {
         onButton2={handleButton2}
         onButton3={handleButton3}
         onDefineAttractions={handleDefineAttractions}
-        currentAttractions={tagGroups.Attractions}
+        currentAttractions={tagGroups.Favorites}
         categoriesAdded={categoriesAddedToAttractions}
         onResetAttractions={resetAttractionsToDefault}
       />

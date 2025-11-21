@@ -40,7 +40,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
         <h1 className="font-bold text-2xl sm:text-4xl text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4 sm:mb-6">Discover & Explore</h1>
         <div className="mt-2 flex flex-col gap-2 sm:gap-3">
           <button onClick={onButton1} className="px-3 py-2 sm:px-4 sm:py-3 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm sm:text-base">
-            Near me: Find the best Attractions
+            Near me: Find my Favorites
           </button>
           <button onClick={onButton2} className="px-3 py-2 sm:px-4 sm:py-3 rounded bg-purple-600 text-white hover:bg-purple-700 transition-colors text-sm sm:text-base">
             Near me: Find anything specific
@@ -109,9 +109,9 @@ const StartingModal: React.FC<StartingModalProps> = ({
                 type="button"
                 className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors hover:opacity-100 cursor-pointer"
                 onClick={onDefineAttractions}
-                title="Define which tags are included as Attractions"
+                title="Define which tags are included as Favorites"
               >
-                My Attractions
+                My Favorites
               </button>
               {onResetAttractions && (
                 <button
@@ -124,7 +124,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
                   }}
                   title="Reset attractions to default (removes custom attractions)"
                 >
-                  Reset Attractions
+                  Reset Favorites
                 </button>
               )}
             </div>
