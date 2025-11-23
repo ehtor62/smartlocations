@@ -34,6 +34,9 @@ export default function AddressSearchModal({
 }: AddressSearchModalProps) {
   const [addressInput, setAddressInputState] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Sync addressInput with keptAddress if keepLocation is active
   React.useEffect(() => {
@@ -44,34 +47,72 @@ export default function AddressSearchModal({
     }
   }, [keepLocation, keptAddress, visible]);
 
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const searchAddresses = async (query: string) => {
     if (query.length < 3) {
       setAddressSuggestions([]);
+      setIsSearching(false);
       return;
     }
+
+    // Cancel previous request if it exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    setIsSearching(true);
 
     try {
       // Using our API route to proxy Nominatim requests
       const response = await fetch(
-        `/api/address-search?q=${encodeURIComponent(query)}`
+        `/api/address-search?q=${encodeURIComponent(query)}`,
+        { signal: abortControllerRef.current.signal }
       );
       
       if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
+        throw new Error(`API returned ${response.status}`); 
       }
       
       const data = await response.json();
       setAddressSuggestions(data);
     } catch (error) {
-      console.error('Address search failed:', error);
-      setAddressSuggestions([]);
+      // Don't log aborted requests as errors
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Address search failed:', error);
+        setAddressSuggestions([]);
+      }
+    } finally {
+      setIsSearching(false);
     }
   };
 
-  const handleAddressInput = (value: string) => {
+  const debouncedSearch = React.useCallback((query: string) => {
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Set new timeout
+    debounceTimeoutRef.current = setTimeout(() => {
+      searchAddresses(query);
+    }, 300); // 300ms debounce
+  }, []);  const handleAddressInput = (value: string) => {
     setAddressInputState(value);
     if (keepLocation) setKeptAddress(value);
-    searchAddresses(value);
+    debouncedSearch(value);
   };
 
   const selectAddress = (suggestion: AddressSuggestion) => {
@@ -127,6 +168,12 @@ export default function AddressSearchModal({
             className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
             autoFocus
           />
+          {isSearching && (
+            <div className="text-sm text-blue-600 mt-1 flex items-center gap-2">
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              Searching...
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-2">
             <label htmlFor="keep-location-constant-checkbox" className="text-xs font-medium text-gray-700">Keep the location constant</label>
             <input

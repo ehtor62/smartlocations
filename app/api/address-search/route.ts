@@ -9,9 +9,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query must be at least 3 characters' }, { status: 400 });
     }
 
-    // Make the request to Nominatim from the server side
+    // Make the request to Nominatim with improved parameters for autocomplete
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`,
+      `https://nominatim.openstreetmap.org/search?` + 
+      `format=json&` +
+      `addressdetails=1&` +
+      `limit=8&` +
+      `countrycodes=&` +
+      `accept-language=en&` +
+      `q=${encodeURIComponent(query)}`,
       {
         headers: {
           'User-Agent': 'SmartLocations/1.0 (https://github.com/ehtor62/smartlocations)'
