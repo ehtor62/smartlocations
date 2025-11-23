@@ -63,9 +63,8 @@ const StartingModal: React.FC<StartingModalProps> = ({
                   max="40"
                   value={numberOfPlaces}
                   onChange={(e) => setNumberOfPlaces(parseInt(e.target.value))}
-                  className="appearance-none cursor-pointer custom-slider"
+                  className="appearance-none cursor-pointer custom-slider flex-1"
                   style={{
-                    width: '140px',
                     height: '10px',
                     background: `linear-gradient(to right, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb ${((numberOfPlaces - 1) / 39) * 100}%, #e5e7eb 100%)`,
                     borderRadius: '5px',
@@ -83,9 +82,8 @@ const StartingModal: React.FC<StartingModalProps> = ({
                   max="20"
                   value={radiusKm}
                   onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-                  className="appearance-none cursor-pointer custom-slider"
+                  className="appearance-none cursor-pointer custom-slider flex-1"
                   style={{
-                    width: '140px',
                     height: '10px',
                     background: `linear-gradient(to right, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) ${((radiusKm - 1) / 19) * 100}%, #e5e7eb ${((radiusKm - 1) / 19) * 100}%, #e5e7eb 100%)`,
                     borderRadius: '5px',
@@ -94,36 +92,40 @@ const StartingModal: React.FC<StartingModalProps> = ({
               </div>
             </div>
             {/* Keep Location label and checkbox */}
-            <div className="flex flex-row items-center mt-2 gap-2" style={{ minHeight: '40px' }}>
-              <input
-                id="keep-location-checkbox"
-                type="checkbox"
-                className="w-4 h-4"
-                checked={keepLocation}
-                onChange={e => {
-                  setKeepLocation(e.target.checked);
-                }}
-                style={{ verticalAlign: 'middle', accentColor: '#16A34A' }}
-              />
-              <label htmlFor="keep-location-checkbox" className="text-xs font-medium text-gray-700" style={{ minWidth: 110, marginLeft: 0 }}>Keep Location</label>
-              <button
-                type="button"
-                className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors hover:opacity-100 cursor-pointer"
-                onClick={onDefineAttractions}
-                title="Define which tags are included as Favorites"
-              >
-                My Favorites
-              </button>
-              {onResetAttractions && (
+            <div className="flex items-center gap-4 mt-2" style={{ minHeight: '40px' }}>
+              <div className="flex items-center gap-2" style={{ minWidth: 110 }}>
+                <input
+                  id="keep-location-checkbox"
+                  type="checkbox"
+                  className="w-4 h-4"
+                  checked={keepLocation}
+                  onChange={e => {
+                    setKeepLocation(e.target.checked);
+                  }}
+                  style={{ verticalAlign: 'middle', accentColor: '#16A34A' }}
+                />
+                <label htmlFor="keep-location-checkbox" className="text-xs font-medium text-gray-700">Keep Location</label>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded border border-red-300 transition-colors hover:opacity-100 cursor-pointer"
-                  onClick={() => setShowResetConfirm(true)}
-                  title="Reset attractions to default (removes custom attractions)"
+                  className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded border border-blue-300 transition-colors hover:opacity-100 cursor-pointer"
+                  onClick={onDefineAttractions}
+                  title="Define which tags are included as Favorites"
                 >
-                  Reset Favorites
+                  My Favorites
                 </button>
-              )}
+                {onResetAttractions && (
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded border border-red-300 transition-colors hover:opacity-100 cursor-pointer"
+                    onClick={() => setShowResetConfirm(true)}
+                    title="Reset attractions to default (removes custom attractions)"
+                  >
+                    Reset Favorites
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
