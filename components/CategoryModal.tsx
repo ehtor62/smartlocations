@@ -98,7 +98,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
               >
                 {/* + sign in edit mode, except for Attractions */}
                 {editAttractionsMode && category !== 'Favorites' && (
-                  <span className="absolute top-1 left-1 z-10 flex items-center justify-center w-5 h-5 bg-white border-2 border-red-500 rounded-full shadow text-red-600 text-base font-bold select-none pointer-events-none">
+                  <span className="absolute top-0.5 left-0.5 sm:top-1 sm:left-1 z-10 flex items-center justify-center w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 bg-white border border-red-500 sm:border-2 rounded-full shadow text-red-600 text-xs sm:text-sm md:text-base font-bold select-none pointer-events-none">
                     +
                   </span>
                 )}
