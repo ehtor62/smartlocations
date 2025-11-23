@@ -33,10 +33,10 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
 }) => {
   if (!visible) return null;
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-      <div className="bg-white/95 backdrop-blur-sm p-4 sm:p-6 rounded-lg shadow-xl w-full max-w-sm sm:max-w-4xl max-h-[90vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-lg sm:text-2xl">
+    <div className="fixed inset-0 flex items-center justify-center z-[1000] p-2 sm:p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
+      <div className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 md:p-6 rounded-lg shadow-xl w-full max-w-xs sm:max-w-sm md:max-w-4xl max-h-[95vh] overflow-y-auto" style={{ maxWidth: 'calc(100vw - 1rem)', maxHeight: 'calc(100vh - 1rem)' }}>
+        <div className="flex justify-between items-center mb-3 sm:mb-4">
+          <h2 className="font-bold text-sm sm:text-lg md:text-2xl pr-2">
             {editAttractionsMode ? 'Add Categories or Tags to Favorites' : 'Choose Categories'}
           </h2>
           <button 
@@ -76,7 +76,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
           )}
         </div>
         {/* Category Grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 sm:gap-2 md:gap-3">
           {Object.keys(tagGroups).map((category) => {
             const isSelected = selectedCategories.includes(category);
             const isDetailsOpen = selectedCategoryForDetails === category;
@@ -105,11 +105,11 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                 {/* Left part - Toggle selection (2/3 width) */}
                 <button
                   onClick={() => toggleCategory(category)}
-                  className="flex-grow px-1 py-2 sm:px-2 md:px-3 md:py-3 rounded-l-lg font-medium text-xs sm:text-sm transition-all duration-200"
+                  className="flex-grow px-1 py-1.5 sm:px-2 sm:py-2 md:px-3 md:py-3 rounded-l-lg font-medium text-[10px] xs:text-xs sm:text-sm transition-all duration-200 leading-tight"
                   disabled={loading}
-                  style={{ width: '66.67%' }}
+                  style={{ width: '66.67%', wordBreak: 'break-word', hyphens: 'auto' }}
                 >
-                  {category.replace(/_/g, ' ')}
+                  <span className="block">{category.replace(/_/g, ' ')}</span>
                 </button>
                 {/* Right part - Show details (1/3 width) */}
                 <button
@@ -117,9 +117,9 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
                     e.stopPropagation();
                     showCategoryDetails(category);
                   }}
-                  className="px-1 py-2 md:px-2 md:py-3 rounded-r-lg text-xs sm:text-sm border-l border-white/20 bg-black/20 hover:bg-black/30 transition-all duration-200"
+                  className="flex-shrink-0 px-1 py-1.5 sm:px-2 sm:py-2 md:px-2 md:py-3 rounded-r-lg text-xs sm:text-sm border-l border-white/20 bg-black/20 hover:bg-black/30 transition-all duration-200 flex items-center justify-center"
                   disabled={loading}
-                  style={{ width: '33.33%' }}
+                  style={{ width: '33.33%', minWidth: '32px' }}
                   title={editAttractionsMode ? (category === 'Favorites' ? `View Favorites details` : `Add tags from ${category.replace(/_/g, ' ')}`) : `View ${category.replace(/_/g, ' ')} details`}
                 >
                   {editAttractionsMode
