@@ -134,14 +134,6 @@ export default function Page() {
     }
   }, [user?.uid]);
 
-  const showReport = (report: string) => {
-    console.log('showReport called with:', report);
-    setReportContent(report);
-    setReportVisible(true);
-    setReportMinimized(false);
-    console.log('Report state set to visible');
-  };
-
   const hideReport = () => {
     setReportVisible(false);
     setReportContent('');
@@ -854,7 +846,7 @@ export default function Page() {
         </button>
       )}
 
-  <SidePanel open={panelOpen} onClose={resetAppToInitialState} onMinimize={minimizeSidePanel} minimized={sidebarMinimized} places={places} onShowReport={showReport} />
+  <SidePanel open={panelOpen} onClose={resetAppToInitialState} onMinimize={minimizeSidePanel} minimized={sidebarMinimized} places={places} />
     </div>
   );
 }

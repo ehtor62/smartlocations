@@ -7,15 +7,13 @@ import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 
 import type { Place } from '../app/page';
 
-export default function SidePanel({ open, onClose, onMinimize, places, minimized, onShowReport }: { 
+export default function SidePanel({ open, onClose, onMinimize, places, minimized }: { 
   open: boolean, 
   onClose: () => void, 
   onMinimize: () => void, 
   places: Place[], 
-  minimized: boolean,
-  onShowReport?: (report: string) => void
+  minimized: boolean
 }) {
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [geminiPanelVisible, setGeminiPanelVisible] = useState(false);
   const [geminiResponse, setGeminiResponse] = useState('');
   const [geminiLoading, setGeminiLoading] = useState(false);
@@ -53,40 +51,6 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     });
   };
 
-  const handleGenerateReport = async () => {
-    console.log('handleGenerateReport called', { onShowReport, placesLength: places.length });
-    if (!onShowReport || places.length === 0) {
-      console.log('Early return:', { onShowReport: !!onShowReport, placesLength: places.length });
-      return;
-    }
-    
-    setIsGeneratingReport(true);
-    try {
-      console.log('Making API call with places:', places);
-      const response = await fetch('/api/generate-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ elements: places }),
-      });
-
-      console.log('API response status:', response.status);
-      if (!response.ok) {
-        throw new Error('Failed to generate report');
-      }
-
-      const data = await response.json();
-      console.log('API response data:', data);
-      onShowReport(data.report);
-    } catch (error) {
-      console.error('Error generating report:', error);
-      alert('Failed to generate report. Please try again.');
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
-  
   const user = useFirebaseUser();
 
   return (
@@ -406,8 +370,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                             </a>
                           ) : (
                             <>
-                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
-                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'highway' && v === 'bus_stop' ? '' : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
+                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'highway' && v === 'bus_stop' ? '' : k === 'ele' ? `${v}m` : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
                                   <a 
                                     href={v.startsWith('http') ? v : `https://${v}`} 
                                     target="_blank" 
