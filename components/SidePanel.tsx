@@ -190,7 +190,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   const formattedAddress = `${addressComponents.street} ${addressComponents.housenumber}, ${addressComponents.postcode} ${addressComponents.city}`;
                   
                   // Get other non-address tags (exclude 'name' since it's already shown as title, exclude 'wheelchair')
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && k !== 'name' && k !== 'wheelchair').slice(0, 4); // Limit to 4 since we have address
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && k !== 'name' && k !== 'wheelchair' && k !== 'direction' && k !== 'source' && k !== 'panoramax').slice(0, 4); // Limit to 4 since we have address
                   
                   return (
                     <>
@@ -206,7 +206,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                               rel="noopener noreferrer"
                               style={{ color: '#3b82f6', textDecoration: 'underline' }}
                             >
-                              {`www.wikidata.org/wiki/${v}`}
+                              {`wikidata.org/wiki/${v}`}
                             </a>
                           ) : k === 'wikipedia' && typeof v === 'string' && v.startsWith('de:') ? (
                             <a 
@@ -219,8 +219,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                             </a>
                           ) : (
                             <>
-                              {k === 'alt_name' ? 'aka' : k === 'check_date' ? 'last checked' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}` : k}: {
-                                (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
+                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'highway' && v === 'bus_stop' ? '' : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
                                   <a 
                                     href={v.startsWith('http') ? v : `https://${v}`} 
                                     target="_blank" 
@@ -228,6 +228,15 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                                     style={{ color: '#3b82f6', textDecoration: 'underline' }}
                                   >
                                     {v}
+                                  </a>
+                                ) : k.endsWith(':wikidata') && typeof v === 'string' && v.startsWith('Q') ? (
+                                  <a 
+                                    href={`https://www.wikidata.org/wiki/${v}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                  >
+                                    {`wikidata.org/wiki/${v}`}
                                   </a>
                                 ) : v
                               }
@@ -243,7 +252,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     .map(addrKey => tags.find(([k]) => k === addrKey))
                     .filter((tag): tag is [string, string] => tag !== undefined);
                   
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && !k.startsWith('ref:') && k !== 'name' && k !== 'wheelchair');
+                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && !k.startsWith('ref:') && k !== 'name' && k !== 'wheelchair' && k !== 'direction' && k !== 'source' && k !== 'panoramax');
                   
                   // Check if we have both street and housenumber to combine them
                   const streetTag = addressTags.find(([k]) => k === 'addr:street');
@@ -259,13 +268,15 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   let combinedStreetAddress = null;
                   let combinedContactAddress = null;
                   
-                  // Combine contact address if we have components
-                  if (contactStreetTag || contactHouseNumberTag || contactCityTag || contactPostcodeTag) {
+                  // Combine contact address if we have components AND we don't have any other address display
+                  const hasCompleteAddr = p.tags['addr:postcode'] && p.tags['addr:city'] && p.tags['addr:street'] && p.tags['addr:housenumber'];
+                  const willHaveCombinedStreet = (streetTag && houseNumberTag) || (streetTag || houseNumberTag || addressTags.length > 0);
+                  if (!hasCompleteAddr && !willHaveCombinedStreet && (contactStreetTag || contactHouseNumberTag || contactCityTag || contactPostcodeTag)) {
                     const addressParts: string[] = [];
                     
                     // Add housenumber and street
                     if (contactHouseNumberTag && contactStreetTag) {
-                      addressParts.push(`${contactHouseNumberTag[1]} ${contactStreetTag[1]}`);
+                      addressParts.push(`${contactStreetTag[1]} ${contactHouseNumberTag[1]}`);
                     } else if (contactStreetTag) {
                       addressParts.push(contactStreetTag[1]);
                     } else if (contactHouseNumberTag) {
@@ -274,7 +285,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     
                     // Add city and postcode
                     if (contactCityTag && contactPostcodeTag) {
-                      addressParts.push(`${contactCityTag[1]} ${contactPostcodeTag[1]}`);
+                      addressParts.push(`${contactPostcodeTag[1]} ${contactCityTag[1]}`);
                     } else if (contactCityTag) {
                       addressParts.push(contactCityTag[1]);
                     } else if (contactPostcodeTag) {
@@ -310,7 +321,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       
                       // Add housenumber and street
                       if (houseNumberTag && streetTag) {
-                        addressParts.push(`${houseNumberTag[1]} ${streetTag[1]}`);
+                        addressParts.push(`${streetTag[1]} ${houseNumberTag[1]}`);
                       } else if (streetTag) {
                         addressParts.push(streetTag[1]);
                       } else if (houseNumberTag) {
@@ -319,7 +330,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       
                       // Add city and postcode
                       if (cityTag && postcodeTag) {
-                        addressParts.push(`${cityTag[1]} ${postcodeTag[1]}`);
+                        addressParts.push(`${postcodeTag[1]} ${cityTag[1]}`);
                       } else if (cityTag) {
                         addressParts.push(cityTag[1]);
                       } else if (postcodeTag) {
@@ -374,7 +385,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                               rel="noopener noreferrer"
                               style={{ color: '#3b82f6', textDecoration: 'underline' }}
                             >
-                              {`www.wikidata.org/wiki/${v}`}
+                              {`wikidata.org/wiki/${v}`}
                             </a>
                           ) : k === 'wikipedia' && typeof v === 'string' && (v.startsWith('de:') || v.startsWith('es:')) ? (
                             (() => {
@@ -397,8 +408,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                             </div>
                           ) : (
                             <>
-                              {k === 'alt_name' ? 'aka' : k === 'check_date' ? 'last checked' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}` : k}: {
-                                (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
+                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'highway' && v === 'bus_stop' ? '' : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
                                   <a 
                                     href={v.startsWith('http') ? v : `https://${v}`} 
                                     target="_blank" 
@@ -407,7 +418,16 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                                   >
                                     {v}
                                   </a>
-                                ) : v
+                                ) : k.endsWith(':wikidata') && typeof v === 'string' && v.startsWith('Q') ? (
+                                  <a 
+                                    href={`https://www.wikidata.org/wiki/${v}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                                  >
+                                    {`wikidata.org/wiki/${v}`}
+                                  </a>
+                                ) : k === 'ele' ? `${v}m` : v
                               }
                             </>
                           )}
