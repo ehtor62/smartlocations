@@ -130,7 +130,6 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                 ) : (
                   <span style={{ fontSize: 24, marginRight: 4 }}>👤</span>
                 )}
-                <span style={{ fontWeight: 500 }}>{user.displayName || user.email || 'User'}</span>
               </div>
             ) : null}
             <div style={{ display: 'flex', gap: sidebarWidth < 300 ? 4 : 8, flexDirection: sidebarWidth < 300 ? 'column' : 'row' }}>
