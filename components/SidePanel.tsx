@@ -16,9 +16,42 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   onShowReport?: (report: string) => void
 }) {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [geminiPanelVisible, setGeminiPanelVisible] = useState(false);
+  const [geminiResponse, setGeminiResponse] = useState('');
+  const [geminiLoading, setGeminiLoading] = useState(false);
   
   // Calculate responsive width - ensure it never exceeds viewport
   const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9, window.innerWidth - 40) : 360;
+
+  // Function to convert URLs in text to clickable links
+  const renderTextWithLinks = (text: string) => {
+    if (!text) return null;
+    
+    // URL regex pattern that matches http/https URLs but excludes trailing punctuation
+    const urlRegex = /(https?:\/\/[^\s]*[^\s.,!?*"';:)])/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: '#3b82f6',
+              textDecoration: 'underline',
+              cursor: 'pointer'
+            }}
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
 
   const handleGenerateReport = async () => {
     console.log('handleGenerateReport called', { onShowReport, placesLength: places.length });
@@ -75,6 +108,55 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     }}>
       {!minimized && (
         <>
+          {/* Gemini AI Panel */}
+          {geminiPanelVisible && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '40vh',
+              backgroundColor: 'white',
+              borderBottom: '2px solid #3b82f6',
+              zIndex: 1002,
+              padding: 16,
+              overflowY: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ margin: 0, color: '#1f2937', fontSize: 18, fontWeight: 600 }}>✨ AI Information</h3>
+                <button
+                  onClick={() => setGeminiPanelVisible(false)}
+                  style={{
+                    background: '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    fontSize: 12
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              {geminiLoading ? (
+                <div style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>
+                  <div>🤖 AI is thinking...</div>
+                </div>
+              ) : (
+                <div style={{ 
+                  whiteSpace: 'pre-wrap', 
+                  lineHeight: 1.5, 
+                  color: '#374151',
+                  fontSize: 14 
+                }}>
+                  {renderTextWithLinks(geminiResponse)}
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* User info section */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             {user ? (
@@ -119,28 +201,22 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
             </div>
           </div>
           
-          <button 
-            onClick={() => {
-              console.log('Button clicked!');
-              handleGenerateReport();
-            }}
-            disabled={isGeneratingReport || places.length === 0}
+          <div
             style={{ 
               margin: '0 0 16px 0', 
               fontSize: sidebarWidth < 300 ? 16 : 18, 
               fontWeight: 600, 
-              color: isGeneratingReport ? '#6b7280' : '#1f2937',
-              background: isGeneratingReport ? '#e5e7eb' : '#f3f4f6',
+              color: '#1f2937',
+              background: '#f3f4f6',
               border: 'none',
-              cursor: isGeneratingReport || places.length === 0 ? 'not-allowed' : 'pointer',
               padding: '8px 12px',
               textAlign: 'left',
               width: '100%',
               borderRadius: '6px'
             }}
           >
-            {isGeneratingReport ? 'Generating Report...' : `Found Places (${places.length}). Get more info`}
-          </button>
+            {`Found ${places.length} Places`}
+          </div>
 
           {places.length === 0 && (
         <div style={{ 
@@ -167,6 +243,117 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
             <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 4 }}>
               <span style={{ marginRight: 8, color: '#3b82f6' }}>{index + 1}.</span>
               {p.tags?.name || (p.tags?.amenity || p.tags?.tourism || p.tags?.leisure) || 'Unnamed Place'}
+              <span 
+                onClick={async () => {
+                  setGeminiLoading(true);
+                  setGeminiPanelVisible(true);
+                  
+                  try {
+                    // Collect place information excluding distance
+                    const title = p.tags?.name || (p.tags?.amenity || p.tags?.tourism || p.tags?.leisure) || 'Unnamed Place';
+                    
+                    const promptParts = [`Please provide interesting and helpful information about this place: ${title}`];
+                    
+                    if (p.tags) {
+                      const tags = Object.entries(p.tags);
+                      
+                      // Add address information
+                      const addressComponents = {
+                        postcode: p.tags['addr:postcode'],
+                        city: p.tags['addr:city'],
+                        street: p.tags['addr:street'],
+                        housenumber: p.tags['addr:housenumber']
+                      };
+                      
+                      const hasCompleteAddress = Object.values(addressComponents).every(v => v && v.trim());
+                      if (hasCompleteAddress) {
+                        const formattedAddress = `${addressComponents.street} ${addressComponents.housenumber}, ${addressComponents.postcode} ${addressComponents.city}`;
+                        promptParts.push(`Address: ${formattedAddress}`);
+                      }
+                      
+                      // Add other relevant tags (excluding internal/technical ones)
+                      const relevantTags = tags.filter(([k]) => 
+                        !k.startsWith('addr:') && 
+                        !k.startsWith('contact:') && 
+                        !k.startsWith('ref:') && 
+                        k !== 'name' && 
+                        k !== 'wheelchair' && 
+                        k !== 'direction' && 
+                        k !== 'source' && 
+                        k !== 'panoramax'
+                      );
+                      
+                      relevantTags.forEach(([k, v]) => {
+                        let displayKey = k;
+                        let displayValue = v;
+                        
+                        // Apply transformations
+                        if (k === 'tourism' && v === 'viewpoint') {
+                          promptParts.push('Type: viewpoint');
+                          return;
+                        }
+                        if (k === 'tourism' && v === 'hotel') {
+                          promptParts.push('Type: hotel');
+                          return;
+                        }
+                        if (k === 'highway' && v === 'bus_stop') {
+                          promptParts.push('Type: bus stop');
+                          return;
+                        }
+                        if (k === 'alt_name') displayKey = 'Also known as';
+                        if (k === 'ele') {
+                          promptParts.push(`Altitude: ${v}m`);
+                          return;
+                        }
+                        if (k === 'air_conditioning') displayKey = 'Air condition';
+                        if (k.endsWith(':wikidata')) {
+                          displayKey = k.replace(':wikidata', '');
+                          displayValue = `wikidata.org/wiki/${v}`;
+                        }
+                        if (k === 'check_date') displayKey = 'Last checked';
+                        if (k.startsWith('check_date:')) displayKey = `Last checked ${k.substring(11)}`;
+                        
+                        promptParts.push(`${displayKey}: ${displayValue}`);
+                      });
+                    }
+                    
+                    const prompt = promptParts.join('\n');
+                    
+                    // Call our API instead of opening website
+                    const response = await fetch('/api/gemini', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({ prompt }),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                      setGeminiResponse(data.response);
+                    } else {
+                      setGeminiResponse(`Error: ${data.error || 'Failed to get response'}`);
+                    }
+                  } catch {
+                    setGeminiResponse(`Error: Failed to connect to AI service`);
+                  } finally {
+                    setGeminiLoading(false);
+                  }
+                }}
+                style={{ 
+                marginLeft: 8, 
+                backgroundColor: '#3b82f6', 
+                color: 'white', 
+                borderRadius: '50%', 
+                width: '20px', 
+                height: '20px', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}>?</span>
             </div>
             <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>
               {(() => {
