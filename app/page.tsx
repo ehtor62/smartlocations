@@ -99,6 +99,10 @@ export default function Page() {
   const [keepLocation, setKeepLocation] = useState(false);
   // Store address input if keepLocation is active
   const [keptAddress, setKeptAddress] = useState('');
+  // Store the display name of the selected address
+  const [selectedLocationName, setSelectedLocationName] = useState('');
+  // Track if the current search is from the "Favorites" button
+  const [isFavoritesSearch, setIsFavoritesSearch] = useState(false);
   const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
   const [reportVisible, setReportVisible] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
@@ -178,6 +182,7 @@ export default function Page() {
     setSelectedCategories([]);
     setAddressModalVisible(false);
     setSearchMode('current');
+    setIsFavoritesSearch(false); // Reset favorites search flag
     setCategoryDetailsVisible(false);
     setSelectedCategoryForDetails('');
     setSelectedTagsInCategory({});
@@ -233,12 +238,30 @@ export default function Page() {
     
     setLoading(true);
     setIsSearching(true);
+    setSelectedLocationName(''); // Clear any previously selected address
+    setIsFavoritesSearch(true); // Mark this as a favorites search
     setModalVisible(false); // Hide modal when Button 1 is clicked
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
       setCenter({ lat, lon });
       setShowGlobeSpinner(true); // Show globe spinner only after location is found
+
+      // Reverse geocode to get the address of current location
+      try {
+        const geocodeResponse = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+        );
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json();
+          if (geocodeData.display_name) {
+            setSelectedLocationName(geocodeData.display_name);
+          }
+        }
+      } catch (error) {
+        console.error('Reverse geocoding failed:', error);
+        // Keep default "Current Location" if geocoding fails
+      }
 
       // send to server
       try {
@@ -297,6 +320,7 @@ export default function Page() {
     const lon = parseFloat(suggestion.lon);
     
     setCenter({ lat, lon });
+    setSelectedLocationName(suggestion.display_name);
     setAddressModalVisible(false);
     
     // Open category modal and set to search at address location
@@ -536,6 +560,7 @@ export default function Page() {
     }
     setLoading(true);
     setIsSearching(true);
+    setIsFavoritesSearch(false); // Clear favorites search flag for category searches
     setCategoryModalVisible(false);
 
     // If keepLocation is active and keptAddress is set, geocode the address and use its coordinates
@@ -596,6 +621,22 @@ export default function Page() {
         const lon = pos.coords.longitude;
         setCenter({ lat, lon });
         setShowGlobeSpinner(true); // Show spinner after location is found
+
+        // Reverse geocode to get the address of current location
+        try {
+          const geocodeResponse = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+          );
+          if (geocodeResponse.ok) {
+            const geocodeData = await geocodeResponse.json();
+            if (geocodeData.display_name) {
+              setSelectedLocationName(geocodeData.display_name);
+            }
+          }
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+          // Keep default if geocoding fails
+        }
 
         try {
           // Get tags for all selected categories with performance optimization
@@ -846,7 +887,16 @@ export default function Page() {
         </button>
       )}
 
-  <SidePanel open={panelOpen} onClose={resetAppToInitialState} onMinimize={minimizeSidePanel} minimized={sidebarMinimized} places={places} />
+  <SidePanel 
+    open={panelOpen} 
+    onClose={resetAppToInitialState} 
+    onMinimize={minimizeSidePanel} 
+    minimized={sidebarMinimized} 
+    places={places} 
+    searchLocation={selectedLocationName || 'Current Location'}
+    selectedCategories={selectedCategories}
+    isFavoritesSearch={isFavoritesSearch}
+  />
     </div>
   );
 }

@@ -7,12 +7,15 @@ import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 
 import type { Place } from '../app/page';
 
-export default function SidePanel({ open, onClose, onMinimize, places, minimized }: { 
+export default function SidePanel({ open, onClose, onMinimize, places, minimized, searchLocation, selectedCategories, isFavoritesSearch }: { 
   open: boolean, 
   onClose: () => void, 
   onMinimize: () => void, 
   places: Place[], 
-  minimized: boolean
+  minimized: boolean,
+  searchLocation?: string,
+  selectedCategories: string[],
+  isFavoritesSearch?: boolean
 }) {
   const [geminiPanelVisible, setGeminiPanelVisible] = useState(false);
   const [geminiResponse, setGeminiResponse] = useState('');
@@ -178,7 +181,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
               borderRadius: '6px'
             }}
           >
-            {`Found ${places.length} Places`}
+            {`Found ${places.length} Places${isFavoritesSearch ? ' for Favorites' : (selectedCategories.length > 0 ? ` for ${selectedCategories.join(', ')}` : '')}${searchLocation ? ` in ${searchLocation}` : ''}.`}
           </div>
 
           {places.length === 0 && (
