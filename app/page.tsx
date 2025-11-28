@@ -286,8 +286,10 @@ export default function Page() {
         console.error(err);
         if (err instanceof Error && err.name === 'TimeoutError') {
           alert('Search timed out. The server might be busy. Please try again.');
+          resetAppToInitialState();
         } else if (err instanceof Error && err.message.includes('timeout')) {
           alert('Search timed out. Please try again or search for fewer categories.');
+          resetAppToInitialState();
         } else {
           alert('Search failed. Please try again.');
         }
@@ -668,8 +670,10 @@ export default function Page() {
           console.error(err);
           if (err instanceof Error && err.name === 'TimeoutError') {
             alert('Search timed out. The server might be busy. Please try again.');
+            resetAppToInitialState();
           } else if (err instanceof Error && err.message.includes('timeout')) {
             alert('Search timed out. Please try again or search for fewer categories.');
+            resetAppToInitialState();
           } else {
             alert('Search failed. Please try again.');
           }
@@ -717,8 +721,10 @@ export default function Page() {
         console.error(err);
         if (err instanceof Error && err.name === 'TimeoutError') {
           alert('Search timed out. The server might be busy. Please try again.');
+          resetAppToInitialState();
         } else if (err instanceof Error && err.message.includes('timeout')) {
           alert('Search timed out. Please try again or search for fewer categories.');
+          resetAppToInitialState();
         } else {
           alert('Search failed. Please try again.');
         }
