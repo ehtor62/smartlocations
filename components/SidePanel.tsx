@@ -54,6 +54,23 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     });
   };
 
+  // Function to extract city, state, country from location string
+  const extractLocationContext = (location: string) => {
+    if (!location || location === 'Current Location') return '';
+    
+    // Split by comma and take the last 2-3 parts (usually city, state/region, country)
+    const parts = location.split(',').map(part => part.trim());
+    if (parts.length >= 2) {
+      // Take last 2-3 parts, skip street addresses (first parts usually contain numbers/street names)
+      const relevantParts = parts.slice(-3).filter(part => 
+        // Filter out parts that look like street addresses (contain numbers at start)
+        !/^\d/.test(part) && part.length > 1
+      );
+      return relevantParts.join(', ');
+    }
+    return location;
+  };
+
   const user = useFirebaseUser();
 
   return (
@@ -218,7 +235,10 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     // Collect place information excluding distance
                     const title = p.tags?.name || (p.tags?.amenity || p.tags?.tourism || p.tags?.leisure) || 'Unnamed Place';
                     
-                    const promptParts = [`Please provide interesting and helpful information about this place: ${title}`];
+                    // Extract location context (city, state, country only)
+                    const locationContext = extractLocationContext(searchLocation || '');
+                    
+                    const promptParts = [`Please provide interesting and helpful information about this place: ${title}${locationContext ? ` in ${locationContext}` : ''}`];
                     
                     if (p.tags) {
                       const tags = Object.entries(p.tags);
