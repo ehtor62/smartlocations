@@ -74,6 +74,18 @@ export default function Page() {
     setEditAttractionsMode(true);
     setCategoryModalVisible(true);
     setModalVisible(false);
+    
+    // Also open the Favorites details modal
+    setSelectedCategoryForDetails('Favorites');
+    // Initialize all Favorites tags as selected if not already set
+    if (!selectedTagsInCategory['Favorites']) {
+      const allTags = tagGroups.Favorites || [];
+      setSelectedTagsInCategory(prev => ({
+        ...prev,
+        Favorites: [...allTags]
+      }));
+    }
+    setCategoryDetailsVisible(true);
   };
   // Spinner for 'Near me - find the best attractions'
   const [showGlobeSpinner, setShowGlobeSpinner] = useState(false);
