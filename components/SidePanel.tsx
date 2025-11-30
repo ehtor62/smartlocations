@@ -137,7 +137,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       fontSize: 12
                     }}
                   >
-                    ✕ Close
+                    ✕
                   </button>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   fontSize: sidebarWidth < 300 ? 10 : 12
                 }}
               >
-                ✕ Close
+                ✕
               </button>
             </div>
           </div>
@@ -432,8 +432,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                             </a>
                           ) : (
                             <>
-                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
-                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'highway' && v === 'bus_stop' ? '' : k === 'ele' ? `${v}m` : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'tourism' && v === 'museum' ? 'Museum' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
+                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'tourism' && v === 'museum' ? '' : k === 'highway' && v === 'bus_stop' ? '' : k === 'ele' ? `${v}m` : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
                                   <a 
                                     href={v.startsWith('http') ? v : `https://${v}`} 
                                     target="_blank" 
@@ -621,8 +621,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                             </div>
                           ) : (
                             <>
-                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
-                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'highway' && v === 'bus_stop' ? '' : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
+                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'tourism' && v === 'museum' ? 'Museum' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
+                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'tourism' && v === 'museum' ? '' : k === 'highway' && v === 'bus_stop' ? '' : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
                                   <a 
                                     href={v.startsWith('http') ? v : `https://${v}`} 
                                     target="_blank" 
