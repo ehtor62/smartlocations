@@ -20,6 +20,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   const [geminiPanelVisible, setGeminiPanelVisible] = useState(false);
   const [geminiResponse, setGeminiResponse] = useState('');
   const [geminiLoading, setGeminiLoading] = useState(false);
+  const [geminiMinimized, setGeminiMinimized] = useState(false);
   
   // Calculate responsive width - ensure it never exceeds viewport
   const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9, window.innerWidth - 40) : 360;
@@ -93,7 +94,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       {!minimized && (
         <>
           {/* Gemini AI Panel */}
-          {geminiPanelVisible && (
+          {geminiPanelVisible && !geminiMinimized && (
             <div style={{
               position: 'fixed',
               top: 0,
@@ -109,20 +110,36 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <h3 style={{ margin: 0, color: '#1f2937', fontSize: 18, fontWeight: 600 }}>✨ AI Information</h3>
-                <button
-                  onClick={() => setGeminiPanelVisible(false)}
-                  style={{
-                    background: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    fontSize: 12
-                  }}
-                >
-                  ✕
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setGeminiMinimized(true)}
+                    style={{
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      fontSize: 12
+                    }}
+                  >
+                    − Minimize
+                  </button>
+                  <button
+                    onClick={() => setGeminiPanelVisible(false)}
+                    style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      fontSize: 12
+                    }}
+                  >
+                    ✕ Close
+                  </button>
+                </div>
               </div>
               {geminiLoading ? (
                 <div style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>
@@ -153,6 +170,25 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
               </div>
             ) : null}
             <div style={{ display: 'flex', gap: sidebarWidth < 300 ? 4 : 8, flexDirection: sidebarWidth < 300 ? 'column' : 'row' }}>
+              {/* Minimized Gemini AI button */}
+              {geminiPanelVisible && geminiMinimized && (
+                <button
+                  onClick={() => setGeminiMinimized(false)}
+                  style={{
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    padding: sidebarWidth < 300 ? '4px 8px' : '6px 12px',
+                    cursor: 'pointer',
+                    fontSize: sidebarWidth < 300 ? 10 : 12,
+                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+                  }}
+                  title="Restore AI Information panel"
+                >
+                  ✨ AI Info
+                </button>
+              )}
               <button 
                 onClick={onMinimize}
                 style={{
@@ -168,7 +204,11 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                 View Map
               </button>
               <button 
-                onClick={onClose}
+                onClick={() => {
+                  setGeminiPanelVisible(false);
+                  setGeminiMinimized(false);
+                  onClose();
+                }}
                 style={{
                   background: '#ef4444',
                   color: 'white',
@@ -183,11 +223,11 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
               </button>
             </div>
           </div>
-          
+
           <div
             style={{ 
               margin: '0 0 16px 0', 
-              fontSize: sidebarWidth < 300 ? 16 : 18, 
+              fontSize: sidebarWidth < 300 ? 16 : 18,
               fontWeight: 600, 
               color: '#1f2937',
               background: '#f3f4f6',
