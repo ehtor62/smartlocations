@@ -29,7 +29,124 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   const renderTextWithLinks = (text: string) => {
     if (!text) return null;
     
-    // URL regex pattern that matches http/https URLs but excludes trailing punctuation
+    // Process the text line by line
+    const lines = text.split('\n');
+    const processedLines = lines.map((line, lineIndex) => {
+      // Handle headings
+      if (line.startsWith('####')) {
+        const headingText = line.replace(/^####\s*/, '');
+        return (
+          <h4 key={lineIndex} style={{ 
+            fontSize: '16px', 
+            fontWeight: 'bold', 
+            margin: '16px 0 8px 0', 
+            color: '#1f2937' 
+          }}>
+            {processInlineText(headingText)}
+          </h4>
+        );
+      }
+      if (line.startsWith('###')) {
+        const headingText = line.replace(/^###\s*/, '');
+        return (
+          <h3 key={lineIndex} style={{ 
+            fontSize: '18px', 
+            fontWeight: 'bold', 
+            margin: '16px 0 8px 0', 
+            color: '#1f2937' 
+          }}>
+            {processInlineText(headingText)}
+          </h3>
+        );
+      }
+      if (line.startsWith('##')) {
+        const headingText = line.replace(/^##\s*/, '');
+        return (
+          <h2 key={lineIndex} style={{ 
+            fontSize: '20px', 
+            fontWeight: 'bold', 
+            margin: '16px 0 8px 0', 
+            color: '#1f2937' 
+          }}>
+            {processInlineText(headingText)}
+          </h2>
+        );
+      }
+      
+      // Handle numbered lists
+      if (line.match(/^\d+\.\s/)) {
+        const listText = line.replace(/^\d+\.\s*/, '');
+        const number = line.match(/^\d+/)?.[0];
+        return (
+          <div key={lineIndex} style={{ 
+            marginLeft: '20px', 
+            marginBottom: '6px',
+            display: 'flex'
+          }}>
+            <span style={{ fontWeight: 'bold', marginRight: '8px', minWidth: '20px' }}>
+              {number}.
+            </span>
+            <span>{processInlineText(listText)}</span>
+          </div>
+        );
+      }
+      
+      // Handle bullet points
+      if (line.match(/^\s*\*\s/)) {
+        const listText = line.replace(/^\s*\*\s*/, '');
+        const indentLevel = Math.floor((line.match(/^\s*/)?.[0].length || 0) / 4);
+        return (
+          <div key={lineIndex} style={{ 
+            marginLeft: `${20 + indentLevel * 20}px`, 
+            marginBottom: '6px',
+            display: 'flex'
+          }}>
+            <span style={{ marginRight: '8px', color: '#6b7280' }}>•</span>
+            <span>{processInlineText(listText)}</span>
+          </div>
+        );
+      }
+      
+      // Handle regular paragraphs
+      if (line.trim()) {
+        return (
+          <div key={lineIndex} style={{ marginBottom: '8px' }}>
+            {processInlineText(line)}
+          </div>
+        );
+      }
+      
+      // Empty line
+      return <div key={lineIndex} style={{ height: '8px' }} />;
+    });
+    
+    return <div>{processedLines}</div>;
+  };
+
+  // Function to process inline formatting (bold, links)
+  const processInlineText = (text: string) => {
+    // Split by bold markers first
+    const boldPattern = /(\*\*.*?\*\*)/g;
+    const parts = text.split(boldPattern);
+    
+    return parts.map((part, index) => {
+      // If this part is bold (starts and ends with **)
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const boldText = part.slice(2, -2); // Remove ** from both ends
+        return (
+          <strong key={`bold-${index}`} style={{ fontWeight: 'bold' }}>
+            {processLinks(boldText)}
+          </strong>
+        );
+      }
+      
+      // Process links in non-bold parts
+      return <span key={`text-${index}`}>{processLinks(part)}</span>;
+    });
+  };
+
+  // Function to process links
+  const processLinks = (text: string) => {
     const urlRegex = /(https?:\/\/[^\s]*[^\s.,!?*"';:)])/g;
     const parts = text.split(urlRegex);
     
@@ -37,7 +154,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       if (urlRegex.test(part)) {
         return (
           <a
-            key={index}
+            key={`url-${index}`}
             href={part}
             target="_blank"
             rel="noopener noreferrer"
@@ -148,9 +265,16 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
               ) : (
                 <div style={{ 
                   whiteSpace: 'pre-wrap', 
-                  lineHeight: 1.5, 
-                  color: '#374151',
-                  fontSize: 14 
+                  lineHeight: 1.6, 
+                  color: '#1f2937',
+                  fontSize: 15,
+                  padding: '16px 20px',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                  margin: '0 -4px',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                 }}>
                   {renderTextWithLinks(geminiResponse)}
                 </div>
