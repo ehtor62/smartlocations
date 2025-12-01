@@ -224,6 +224,11 @@ export default function Page() {
       setCenter({ lat: newLat, lon: newLon });
       console.log(`Moved ${distance.toFixed(2)}km - triggering new search`);
       
+      // Show visual feedback immediately for auto-search
+      setShowGlobeSpinner(true);
+      setLoading(true);
+      setIsSearching(true);
+      
       // Trigger search with current categories/favorites
       try {
         if (selectedCategories.length > 0) {
@@ -235,6 +240,9 @@ export default function Page() {
         }
       } catch (error) {
         console.error('Auto-search failed:', error);
+        setShowGlobeSpinner(false); // Hide spinner on error
+        setLoading(false);
+        setIsSearching(false);
       }
     }
   };
@@ -529,68 +537,86 @@ export default function Page() {
     setSelectedLocationName(''); // Clear any previously selected address
     setIsFavoritesSearch(true); // Mark this as a favorites search
     setModalVisible(false); // Hide modal when Button 1 is clicked
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
+    
+    // If live tracking is active and we have current position, use it immediately
+    if (isLocationTracking && currentPosition) {
+      const lat = currentPosition.coords.latitude;
+      const lon = currentPosition.coords.longitude;
       setCenter({ lat, lon });
-      setShowGlobeSpinner(true); // Show globe spinner only after location is found
-
-      // Reverse geocode to get the address of current location
-      try {
-        const geocodeResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
-        );
-        if (geocodeResponse.ok) {
-          const geocodeData = await geocodeResponse.json();
-          if (geocodeData.display_name) {
-            setSelectedLocationName(geocodeData.display_name);
-          }
-        }
-      } catch (error) {
-        console.error('Reverse geocoding failed:', error);
-        // Keep default "Current Location" if geocoding fails
-      }
-
-      // send to server
-      try {
-        // Use Nature and Culture tags from allowedtags.ts
-        const tags = [
-          ...tagGroups.Favorites.map(tag => tag.replace(':', '=')),
-          
-        ];
-
-        const res = await fetch('/api/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces, radiusKm }),
-          signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
-        });
-        const data = await res.json();
-        setPlaces(data.places || []);
-        setPanelOpen(true);
-        setShowGlobeSpinner(false); // Hide spinner when panel opens
-      } catch (err) {
+      setShowGlobeSpinner(true); // Show spinner immediately
+      
+      // Use existing position instead of requesting new geolocation
+      await performSearchAtLocation(lat, lon);
+    } else {
+      // Original geolocation flow for when live tracking is not active
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        setCenter({ lat, lon });
+        setShowGlobeSpinner(true); // Show globe spinner only after location is found
+        
+        await performSearchAtLocation(lat, lon);
+      }, (err) => {
         setShowGlobeSpinner(false);
-        console.error(err);
-        if (err instanceof Error && err.name === 'TimeoutError') {
-          alert('Search timed out. The server might be busy. Please try again.');
-          resetAppToInitialState();
-        } else if (err instanceof Error && err.message.includes('timeout')) {
-          alert('Search timed out. Please try again or search for fewer categories.');
-          resetAppToInitialState();
-        } else {
-          alert('Search failed. Please try again.');
-        }
-      } finally {
         setLoading(false);
         setIsSearching(false);
+        alert('Geolocation permission denied or error: ' + err.message);
+      }, { enableHighAccuracy: true });
+    }
+  };
+  
+  // Helper function to perform search at given location
+  const performSearchAtLocation = async (lat: number, lon: number) => {
+    // Reverse geocode to get the address of current location
+    try {
+      const geocodeResponse = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+      );
+      if (geocodeResponse.ok) {
+        const geocodeData = await geocodeResponse.json();
+        if (geocodeData.display_name) {
+          setSelectedLocationName(geocodeData.display_name);
+        }
       }
-    }, (err) => {
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      // Keep default "Current Location" if geocoding fails
+    }
+
+    // send to server
+    try {
+      // Use Nature and Culture tags from allowedtags.ts
+      const tags = [
+        ...tagGroups.Favorites.map(tag => tag.replace(':', '=')),
+        
+      ];
+
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces, radiusKm }),
+        signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
+      });
+      const data = await res.json();
+      setPlaces(data.places || []);
+      setPanelOpen(true);
+      setShowGlobeSpinner(false); // Hide spinner when panel opens
+    } catch (err) {
       setShowGlobeSpinner(false);
+      console.error(err);
+      if (err instanceof Error && err.name === 'TimeoutError') {
+        alert('Search timed out. The server might be busy. Please try again.');
+        resetAppToInitialState();
+      } else if (err instanceof Error && err.message.includes('timeout')) {
+        alert('Search timed out. Please try again or search for fewer categories.');
+        resetAppToInitialState();
+      } else {
+        alert('Search failed. Please try again.');
+      }
+    } finally {
       setLoading(false);
       setIsSearching(false);
-      alert('Geolocation permission denied or error: ' + err.message);
-    }, { enableHighAccuracy: true });
+    }
   };
 
   const handleButton3 = () => {
@@ -1084,8 +1110,6 @@ export default function Page() {
         onLocationTrackingToggle={toggleLocationTracking}
         soundEnabled={soundEnabled}
         onSoundToggle={toggleSoundEnabled}
-        journeyPlacesCount={journeyPlaces.length}
-        onShowJourney={openJourneySummary}
         isRequestingLocation={isRequestingLocation}
       />
 
@@ -1274,6 +1298,9 @@ export default function Page() {
     searchLocation={selectedLocationName || 'Current Location'}
     selectedCategories={selectedCategories}
     isFavoritesSearch={isFavoritesSearch}
+    isLocationTracking={isLocationTracking}
+    journeyPlacesCount={journeyPlaces.length}
+    onShowJourney={openJourneySummary}
   />
     </div>
   );

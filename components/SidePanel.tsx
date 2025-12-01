@@ -7,7 +7,7 @@ import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 
 import type { Place } from '../app/page';
 
-export default function SidePanel({ open, onClose, onMinimize, places, minimized, searchLocation, selectedCategories, isFavoritesSearch }: { 
+export default function SidePanel({ open, onClose, onMinimize, places, minimized, searchLocation, selectedCategories, isFavoritesSearch, isLocationTracking, journeyPlacesCount, onShowJourney }: { 
   open: boolean, 
   onClose: () => void, 
   onMinimize: () => void, 
@@ -15,7 +15,10 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   minimized: boolean,
   searchLocation?: string,
   selectedCategories: string[],
-  isFavoritesSearch?: boolean
+  isFavoritesSearch?: boolean,
+  isLocationTracking?: boolean,
+  journeyPlacesCount?: number,
+  onShowJourney?: () => void
 }) {
   const [geminiPanelVisible, setGeminiPanelVisible] = useState(false);
   const [geminiResponse, setGeminiResponse] = useState('');
@@ -554,6 +557,28 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
             }}
           >
             {`Found ${places.length} Places${isFavoritesSearch ? ' for Favorites' : (selectedCategories.length > 0 ? ` for ${selectedCategories.join(', ')}` : '')}${searchLocation ? ` in ${searchLocation}` : ''}.`}
+            {isLocationTracking && journeyPlacesCount && journeyPlacesCount > 0 && (
+              <span style={{ marginLeft: 8, fontSize: 12, color: '#059669' }}>
+                🗺️ Journey: {journeyPlacesCount} discovered
+                {onShowJourney && (
+                  <button
+                    onClick={onShowJourney}
+                    style={{
+                      marginLeft: 4,
+                      padding: '2px 6px',
+                      fontSize: 10,
+                      background: '#059669',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 3,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    View
+                  </button>
+                )}
+              </span>
+            )}
           </div>
 
           {places.length === 0 && (
