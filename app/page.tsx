@@ -118,6 +118,234 @@ export default function Page() {
   const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
   const [reportVisible, setReportVisible] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
+  
+  // Location tracking state (micro step 1 - just state, no functionality yet)
+  const [isLocationTracking, setIsLocationTracking] = useState(false);
+  const [currentPosition, setCurrentPosition] = useState<GeolocationPosition | null>(null);
+  const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
+  const [lastSearchPosition, setLastSearchPosition] = useState<{ lat: number; lon: number } | null>(null);
+  const [discoveredPlaces, setDiscoveredPlaces] = useState<Place[]>([]);
+  const [newPlacesAlert, setNewPlacesAlert] = useState<{ count: number; timestamp: number } | null>(null);
+  const [journeyPlaces, setJourneyPlaces] = useState<Place[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showJourneySummary, setShowJourneySummary] = useState(false);
+
+  // Function to compare place arrays and find new places
+  const findNewPlaces = (oldPlaces: Place[], newPlaces: Place[]): Place[] => {
+    const oldIds = new Set(oldPlaces.map(place => place.id));
+    return newPlaces.filter(place => !oldIds.has(place.id));
+  };
+
+  // Function to play notification sound
+  const playNotificationSound = () => {
+    if (soundEnabled) {
+      try {
+        // Create a simple notification sound using Web Audio API
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.1);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } catch (error) {
+        console.log('Sound notification not available:', error);
+      }
+    }
+  };
+
+  // Function to show new places alert
+  const showNewPlacesAlert = (newPlaces: Place[]) => {
+    if (newPlaces.length > 0) {
+      setNewPlacesAlert({ count: newPlaces.length, timestamp: Date.now() });
+      console.log(`🎯 Discovered ${newPlaces.length} new places:`, newPlaces.map(p => p.display_name));
+      
+      // Add to journey summary
+      setJourneyPlaces(prev => [...prev, ...newPlaces]);
+      
+      // Play sound notification
+      playNotificationSound();
+      
+      // Auto-hide alert after 4 seconds
+      setTimeout(() => {
+        setNewPlacesAlert(null);
+      }, 4000);
+    }
+  };
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in kilometers
+  };
+
+  // Function to trigger automatic search on location change
+  const handleLocationBasedSearch = async (position: GeolocationPosition) => {
+    const newLat = position.coords.latitude;
+    const newLon = position.coords.longitude;
+    
+    // Only trigger automatic searches if user has already made an initial search choice
+    if (!lastSearchPosition || (selectedCategories.length === 0 && !isFavoritesSearch)) {
+      // User hasn't made any search yet - just update position and wait
+      setLastSearchPosition({ lat: newLat, lon: newLon });
+      setCenter({ lat: newLat, lon: newLon });
+      console.log('Location updated but no search preferences set yet');
+      return;
+    }
+    
+    // Check if moved significantly from last search location
+    const distance = calculateDistance(
+      lastSearchPosition.lat, lastSearchPosition.lon,
+      newLat, newLon
+    );
+    
+    // Trigger search if moved more than 500 meters
+    if (distance > 0.5 && !isSearching) {
+      const oldPlaces = [...places]; // Store current places for comparison
+      setLastSearchPosition({ lat: newLat, lon: newLon });
+      setCenter({ lat: newLat, lon: newLon });
+      console.log(`Moved ${distance.toFixed(2)}km - triggering new search`);
+      
+      // Trigger search with current categories/favorites
+      try {
+        if (selectedCategories.length > 0) {
+          console.log('Auto-search: Using selected categories');
+          await handleMultiCategorySearch();
+        } else if (isFavoritesSearch) {
+          console.log('Auto-search: Using favorites');
+          await handleButton1(); // Use favorites search
+        }
+        
+        // After search completes, check for new places
+        // Note: We'll compare in a useEffect that watches places changes
+      } catch (error) {
+        console.error('Auto-search failed:', error);
+      }
+    }
+  };
+  const toggleLocationTracking = () => {
+    if (!isLocationTracking) {
+      // Enabling tracking - provide immediate feedback and request permission
+      setIsLocationTracking(true); // Immediate visual feedback
+      setIsRequestingLocation(true);
+      
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by this browser.');
+        setIsLocationTracking(false); // Revert on error
+        setIsRequestingLocation(false);
+        return;
+      }
+      
+      // Request permission and get initial position
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log('Location permission granted, position:', position.coords);
+          setCurrentPosition(position);
+          setIsRequestingLocation(false);
+          
+          // Set initial search position but don't trigger search yet
+          // Let user choose categories first
+          setLastSearchPosition({ 
+            lat: position.coords.latitude, 
+            lon: position.coords.longitude 
+          });
+          setCenter({ lat: position.coords.latitude, lon: position.coords.longitude });
+          
+          console.log('Live tracking enabled - ready to search when user selects categories');
+          
+          // Start continuous location tracking
+          const watchId = navigator.geolocation.watchPosition(
+            (newPosition) => {
+              console.log('Location updated:', newPosition.coords);
+              setCurrentPosition(newPosition);
+              
+              // Trigger automatic search on significant location changes
+              handleLocationBasedSearch(newPosition);
+            },
+            (watchError) => {
+              console.error('Watch position error:', watchError);
+              // Don't disable tracking on minor errors, just log them
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 30000
+            }
+          );
+          
+          setLocationWatchId(watchId);
+          console.log('Started location watching with ID:', watchId);
+        },
+        (error) => {
+          console.error('Location permission denied or error:', error);
+          let errorMessage = 'Unable to access location. ';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage += 'Permission denied by user.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage += 'Location information unavailable.';
+              break;
+            case error.TIMEOUT:
+              errorMessage += 'Location request timed out.';
+              break;
+            default:
+              errorMessage += 'An unknown error occurred.';
+              break;
+          }
+          alert(errorMessage);
+          setIsLocationTracking(false); // Revert on error
+          setIsRequestingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    } else {
+      // Disabling tracking - cleanup watch position
+      console.log('Location tracking disabled');
+      
+      if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        console.log('Cleared location watch ID:', locationWatchId);
+        setLocationWatchId(null);
+      }
+      
+      setIsLocationTracking(false);
+      setCurrentPosition(null);
+      setIsRequestingLocation(false);
+      setLastSearchPosition(null);
+      setDiscoveredPlaces([]);
+      setNewPlacesAlert(null);
+      setJourneyPlaces([]);
+    }
+  };
+
+  // Toggle function for sound notifications
+  const toggleSoundEnabled = () => {
+    setSoundEnabled(prev => !prev);
+  };
+
+  // Function to show journey summary
+  const openJourneySummary = () => {
+    setShowJourneySummary(true);
+  };
   const [reportMinimized, setReportMinimized] = useState(false);
 
   // Load user's custom attractions when user logs in
@@ -149,6 +377,28 @@ export default function Page() {
       return () => clearTimeout(timer);
     }
   }, [user?.uid]);
+
+  // Cleanup location tracking on component unmount
+  useEffect(() => {
+    return () => {
+      if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        console.log('Component unmount: cleared location watch ID:', locationWatchId);
+      }
+    };
+  }, [locationWatchId]);
+
+  // Watch for new places discovered during live tracking
+  useEffect(() => {
+    if (isLocationTracking && discoveredPlaces.length > 0) {
+      const newPlaces = findNewPlaces(discoveredPlaces, places);
+      if (newPlaces.length > 0) {
+        showNewPlacesAlert(newPlaces);
+      }
+    }
+    // Update discovered places for next comparison
+    setDiscoveredPlaces([...places]);
+  }, [places, isLocationTracking]);
 
   const hideReport = () => {
     setReportVisible(false);
@@ -770,6 +1020,25 @@ export default function Page() {
         </div>
       )}
 
+      {/* New Places Discovery Alert */}
+      {newPlacesAlert && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[2001] bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg shadow-xl transition-all duration-300 animate-bounce">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">🎯</div>
+            <div className="text-sm font-medium">
+              Discovered {newPlacesAlert.count} new place{newPlacesAlert.count !== 1 ? 's' : ''}!
+            </div>
+            <button
+              onClick={() => setNewPlacesAlert(null)}
+              className="ml-2 text-white hover:text-gray-200 transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       <StartingModal
         visible={modalVisible}
         numberOfPlaces={numberOfPlaces}
@@ -785,6 +1054,12 @@ export default function Page() {
         currentAttractions={tagGroups.Favorites}
         categoriesAdded={categoriesAddedToAttractions}
         onResetAttractions={resetAttractionsToDefault}
+        isLocationTracking={isLocationTracking}
+        onLocationTrackingToggle={toggleLocationTracking}
+        soundEnabled={soundEnabled}
+        onSoundToggle={toggleSoundEnabled}
+        journeyPlacesCount={journeyPlaces.length}
+        onShowJourney={openJourneySummary}
       />
 
       <CategoryModal
@@ -834,6 +1109,64 @@ export default function Page() {
         }}
         onSelect={closeCategoryDetailsAndActivate}
       />
+
+      {/* Journey Summary Modal */}
+      {showJourneySummary && (
+        <div className="fixed inset-0 flex items-center justify-center z-[1005] p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">🗺️ Journey Summary</h2>
+              <button
+                onClick={() => setShowJourneySummary(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div className="text-sm text-gray-600 mb-4">
+                Discovered {journeyPlaces.length} places during your journey
+              </div>
+              {journeyPlaces.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  Start your journey to discover amazing places!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {journeyPlaces.map((place, index) => (
+                    <div key={`${place.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-lg">📍</div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{place.display_name}</div>
+                        {place.tags.tourism && (
+                          <div className="text-sm text-blue-600 mt-1">
+                            {place.tags.tourism}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={() => setJourneyPlaces([])}
+                className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                disabled={journeyPlaces.length === 0}
+              >
+                Clear Journey
+              </button>
+              <button
+                onClick={() => setShowJourneySummary(false)}
+                className="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating button to reopen side panel when minimized */}
       {sidebarMinimized && panelOpen && (

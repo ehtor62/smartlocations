@@ -15,6 +15,12 @@ interface StartingModalProps {
   currentAttractions?: string[]; // Add this to see current attractions
   categoriesAdded?: string[]; // Add this to see which categories were added
   onResetAttractions?: () => void; // Add reset function
+  isLocationTracking?: boolean; // Location tracking state
+  onLocationTrackingToggle?: () => void; // Location tracking toggle function
+  soundEnabled?: boolean; // Sound notification state
+  onSoundToggle?: () => void; // Sound toggle function
+  journeyPlacesCount?: number; // Number of places discovered in journey
+  onShowJourney?: () => void; // Show journey summary function
 }
 
 const StartingModal: React.FC<StartingModalProps> = ({
@@ -30,6 +36,12 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onButton3,
   onDefineAttractions,
   onResetAttractions,
+  isLocationTracking,
+  onLocationTrackingToggle,
+  soundEnabled,
+  onSoundToggle,
+  journeyPlacesCount,
+  onShowJourney,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -148,6 +160,53 @@ const StartingModal: React.FC<StartingModalProps> = ({
                 )}
               </div>
             </div>
+            
+            {/* Location Tracking Toggle - moved to bottom */}
+            <div className="flex items-center justify-center gap-2 mt-3 pt-2 border-t border-gray-200">
+              <input
+                id="location-tracking-checkbox"
+                type="checkbox"
+                className="w-4 h-4"
+                checked={isLocationTracking || false}
+                onChange={onLocationTrackingToggle}
+                style={{ verticalAlign: 'middle', accentColor: '#F59E0B' }}
+              />
+              <label htmlFor="location-tracking-checkbox" className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                Live Tracking Mode
+                {isLocationTracking && (
+                  <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1" title="Actively tracking"></span>
+                )}
+              </label>
+            </div>
+            
+            {/* Sound and Journey Controls - when tracking is enabled */}
+            {isLocationTracking && (
+              <div className="flex items-center justify-center gap-4 mt-2">
+                <div className="flex items-center gap-1">
+                  <input
+                    id="sound-checkbox"
+                    type="checkbox"
+                    className="w-3 h-3"
+                    checked={soundEnabled || false}
+                    onChange={onSoundToggle}
+                    style={{ verticalAlign: 'middle', accentColor: '#10B981' }}
+                  />
+                  <label htmlFor="sound-checkbox" className="text-xs text-gray-600">
+                    🔔 Sound
+                  </label>
+                </div>
+                
+                {journeyPlacesCount && journeyPlacesCount > 0 && (
+                  <button
+                    onClick={onShowJourney}
+                    className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded border border-purple-300 hover:bg-purple-200 transition-colors"
+                    title="View journey summary"
+                  >
+                    🗺️ Journey ({journeyPlacesCount})
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
