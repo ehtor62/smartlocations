@@ -22,8 +22,194 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiMinimized, setGeminiMinimized] = useState(false);
   
+  // Define tag filtering configuration
+  const tagConfig = {
+    // Tags to completely exclude from display
+    excludedTags: new Set([
+      'name', // Already shown as title
+      'wheelchair', 
+      'direction', 
+      'source', 
+      'panoramax',
+      'ref',
+      'operator:type',
+      'brand:wikidata',
+      'operator:wikidata',
+      'building',
+      'building:levels',
+      'building:colour',
+      'roof:shape',
+      'roof:material',
+      'created_by',
+      'survey:date'
+    ]),
+    
+    // Tag prefixes to exclude
+    excludedPrefixes: [
+      'addr:', // Address tags (handled separately)
+      'contact:', // Contact tags (handled separately)
+      'name:', // Name variations in other languages
+      'old_name:',
+      'short_name:',
+      'alt_name:',
+      'loc_name:',
+      'reg_name:',
+      'official_name:',
+      'int_name:',
+      'nat_name:',
+      'sorting_name:',
+      'construction:', // Construction-related tags
+      'demolished:',
+      'disused:',
+      'abandoned:',
+      'proposed:',
+      'planned:',
+      'layer:', // Layer-related tags
+      'fixme:',
+      'note:',
+      'todo:',
+      'FIXME:',
+      'NOTE:',
+      'TODO:',
+      'source:',
+      'ref:',
+      'check_date:',
+      'survey:',
+      'import:',
+      'tiger:',
+      'gnis:',
+      'nhd:',
+      'massgis:',
+      'mvdgis:',
+      'lacounty:'
+    ],
+    
+    // Special formatting rules for specific tags
+    specialFormatting: {
+      'tourism:viewpoint': () => ({ label: '', value: 'viewpoint' }),
+      'tourism:hotel': () => ({ label: '', value: 'hotel' }),
+      'tourism:museum': () => ({ label: '', value: 'Museum' }),
+      'highway:bus_stop': () => ({ label: '', value: 'bus stop' }),
+      'alt_name': () => ({ label: 'aka:', value: null }),
+      'ele': (v: string) => ({ label: 'altitude:', value: `${v}m` }),
+      'air_conditioning': () => ({ label: 'air condition:', value: null }),
+      'check_date': () => ({ label: 'last checked:', value: null })
+    } as Record<string, (value?: string) => { label: string; value: string | null }>
+  };
+
   // Calculate responsive width - ensure it never exceeds viewport
   const sidebarWidth = typeof window !== 'undefined' ? Math.min(360, window.innerWidth * 0.9, window.innerWidth - 40) : 360;
+
+  // Helper function to check if a tag should be excluded
+  const shouldExcludeTag = (key: string): boolean => {
+    // Check if tag is in excluded list
+    if (tagConfig.excludedTags.has(key)) return true;
+    
+    // Check if tag starts with any excluded prefix
+    return tagConfig.excludedPrefixes.some(prefix => key.startsWith(prefix));
+  };
+
+  // Helper function to format a tag according to rules
+  const formatTag = (key: string, value: string): React.JSX.Element | null => {
+    // Check for special formatting rules
+    const specialKey = `${key}:${value}`;
+    const specialRule = tagConfig.specialFormatting[specialKey] || tagConfig.specialFormatting[key];
+    
+    if (specialRule) {
+      const result = specialRule(value);
+      if (result.label === '' && result.value) {
+        // Special case like "viewpoint", "hotel" - just show the value
+        return <span>{result.value}</span>;
+      } else {
+        // Normal case with label and value
+        const displayValue = result.value || value;
+        return (
+          <>
+            {result.label} {renderValueWithLinks(key, displayValue)}
+          </>
+        );
+      }
+    }
+    
+    // Handle wikidata links
+    if (key.endsWith(':wikidata') && typeof value === 'string' && value.startsWith('Q')) {
+      return (
+        <>
+          {`${key.replace(':wikidata', '')}:`} {' '}
+          <a 
+            href={`https://www.wikidata.org/wiki/${value}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ color: '#3b82f6', textDecoration: 'underline' }}
+          >
+            {`wikidata.org/wiki/${value}`}
+          </a>
+        </>
+      );
+    }
+    
+    // Handle check_date variations
+    if (key.startsWith('check_date:')) {
+      return (
+        <>
+          {`last checked ${key.substring(11)}:`} {value}
+        </>
+      );
+    }
+    
+    // Handle special link cases
+    if (key === 'wikidata' && typeof value === 'string') {
+      return (
+        <a 
+          href={`https://www.wikidata.org/wiki/${value}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: '#3b82f6', textDecoration: 'underline' }}
+        >
+          {`wikidata.org/wiki/${value}`}
+        </a>
+      );
+    }
+    
+    if (key === 'wikipedia' && typeof value === 'string' && value.startsWith('de:')) {
+      return (
+        <a 
+          href={`https://de.wikipedia.org/wiki/${value.substring(3).replace(/ /g, '_')}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: '#3b82f6', textDecoration: 'underline' }}
+        >
+          {`https://de.wikipedia.org/wiki/${value.substring(3).replace(/ /g, '_')}`}
+        </a>
+      );
+    }
+    
+    // Default formatting
+    return (
+      <>
+        {`${key}:`} {renderValueWithLinks(key, value)}
+      </>
+    );
+  };
+
+  // Helper function to render values with proper link handling
+  const renderValueWithLinks = (key: string, value: string): React.JSX.Element | string => {
+    // Handle URL cases
+    if (key === 'website' || key === 'url' || (typeof value === 'string' && (value.startsWith('http://') || value.startsWith('https://')))) {
+      return (
+        <a 
+          href={value.startsWith('http') ? value : `https://${value}`} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ color: '#3b82f6', textDecoration: 'underline' }}
+        >
+          {value}
+        </a>
+      );
+    }
+    
+    return value;
+  };
 
   // Function to convert URLs in text to clickable links
   const renderTextWithLinks = (text: string) => {
@@ -147,8 +333,12 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
 
   // Function to process links
   const processLinks = (text: string) => {
-    const urlRegex = /(https?:\/\/[^\s]*[^\s.,!?*"';:)])/g;
-    const parts = text.split(urlRegex);
+    // First, handle markdown-style links [text](url) and convert to just the URL
+    const processedText = text.replace(/\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g, '$2');
+    
+    // Then handle standalone URLs, being more precise about URL boundaries
+    const urlRegex = /(https?:\/\/[^\s<>\"'`,;{}|\^\[\]\\]+[^\s<>\"'`,;{}|\^\[\]\\.,!?*"';:)])/g;
+    const parts = processedText.split(urlRegex);
     
     return parts.map((part, index) => {
       if (urlRegex.test(part)) {
@@ -161,7 +351,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
             style={{
               color: '#3b82f6',
               textDecoration: 'underline',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              marginRight: '4px'
             }}
           >
             {part}
@@ -439,15 +630,15 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                         
                         // Apply transformations
                         if (k === 'tourism' && v === 'viewpoint') {
-                          promptParts.push('Type: viewpoint');
+                          promptParts.push('Type: Viewpoint');
                           return;
                         }
                         if (k === 'tourism' && v === 'hotel') {
-                          promptParts.push('Type: hotel');
+                          promptParts.push('Type: Hotel');
                           return;
                         }
                         if (k === 'highway' && v === 'bus_stop') {
-                          promptParts.push('Type: bus stop');
+                          promptParts.push('Type: Bus stop');
                           return;
                         }
                         if (k === 'alt_name') displayKey = 'Also known as';
@@ -526,61 +717,24 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   // Format as "Main Street 42, 12345 Berlin"
                   const formattedAddress = `${addressComponents.street} ${addressComponents.housenumber}, ${addressComponents.postcode} ${addressComponents.city}`;
                   
-                  // Get other non-address tags (exclude 'name' since it's already shown as title, exclude 'wheelchair')
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && k !== 'name' && k !== 'wheelchair' && k !== 'direction' && k !== 'source' && k !== 'panoramax').slice(0, 4); // Limit to 4 since we have address
+                  // Get other non-address tags using the new filtering system
+                  const otherTags = tags.filter(([k]) => !shouldExcludeTag(k)).slice(0, 4); // Limit to 4 since we have address
                   
                   return (
                     <>
                       <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
                         📍 {formattedAddress}
                       </div>
-                      {otherTags.map(([k, v]) => (
-                        <div key={k} style={{ marginBottom: 2 }}>
-                          {k === 'wikidata' && typeof v === 'string' ? (
-                            <a 
-                              href={`https://www.wikidata.org/wiki/${v}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                            >
-                              {`wikidata.org/wiki/${v}`}
-                            </a>
-                          ) : k === 'wikipedia' && typeof v === 'string' && v.startsWith('de:') ? (
-                            <a 
-                              href={`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                            >
-                              {`https://de.wikipedia.org/wiki/${v.substring(3).replace(/ /g, '_')}`}
-                            </a>
-                          ) : (
-                            <>
-                              {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'tourism' && v === 'museum' ? 'Museum' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
-                                k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'tourism' && v === 'museum' ? '' : k === 'highway' && v === 'bus_stop' ? '' : k === 'ele' ? `${v}m` : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
-                                  <a 
-                                    href={v.startsWith('http') ? v : `https://${v}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                                  >
-                                    {v}
-                                  </a>
-                                ) : k.endsWith(':wikidata') && typeof v === 'string' && v.startsWith('Q') ? (
-                                  <a 
-                                    href={`https://www.wikidata.org/wiki/${v}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                                  >
-                                    {`wikidata.org/wiki/${v}`}
-                                  </a>
-                                ) : v
-                              }
-                            </>
-                          )}
-                        </div>
-                      ))}
+                      {otherTags.map(([k, v]) => {
+                        const formatted = formatTag(k, v);
+                        if (!formatted) return null;
+                        
+                        return (
+                          <div key={k} style={{ marginBottom: 2 }}>
+                            {formatted}
+                          </div>
+                        );
+                      })}
                     </>
                   );
                 } else {
