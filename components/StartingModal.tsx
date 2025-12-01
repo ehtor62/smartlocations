@@ -21,6 +21,7 @@ interface StartingModalProps {
   onSoundToggle?: () => void; // Sound toggle function
   journeyPlacesCount?: number; // Number of places discovered in journey
   onShowJourney?: () => void; // Show journey summary function
+  isRequestingLocation?: boolean; // Location permission request state
 }
 
 const StartingModal: React.FC<StartingModalProps> = ({
@@ -42,6 +43,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onSoundToggle,
   journeyPlacesCount,
   onShowJourney,
+  isRequestingLocation,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -175,6 +177,9 @@ const StartingModal: React.FC<StartingModalProps> = ({
                 Live Tracking Mode
                 {isLocationTracking && (
                   <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse ml-1" title="Actively tracking"></span>
+                )}
+                {isRequestingLocation && (
+                  <span className="text-orange-600 ml-1" title="Requesting location permission">📍</span>
                 )}
               </label>
             </div>

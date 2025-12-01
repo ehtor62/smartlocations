@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 
 import dynamic from 'next/dynamic';
@@ -125,24 +125,24 @@ export default function Page() {
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
   const [lastSearchPosition, setLastSearchPosition] = useState<{ lat: number; lon: number } | null>(null);
-  const [discoveredPlaces, setDiscoveredPlaces] = useState<Place[]>([]);
   const [newPlacesAlert, setNewPlacesAlert] = useState<{ count: number; timestamp: number } | null>(null);
   const [journeyPlaces, setJourneyPlaces] = useState<Place[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showJourneySummary, setShowJourneySummary] = useState(false);
+  const previousPlacesRef = useRef<Place[]>([]);
 
   // Function to compare place arrays and find new places
-  const findNewPlaces = (oldPlaces: Place[], newPlaces: Place[]): Place[] => {
+  const findNewPlaces = useCallback((oldPlaces: Place[], newPlaces: Place[]): Place[] => {
     const oldIds = new Set(oldPlaces.map(place => place.id));
     return newPlaces.filter(place => !oldIds.has(place.id));
-  };
+  }, []);
 
   // Function to play notification sound
-  const playNotificationSound = () => {
+  const playNotificationSound = useCallback(() => {
     if (soundEnabled) {
       try {
         // Create a simple notification sound using Web Audio API
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const audioContext = new (window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
@@ -162,13 +162,18 @@ export default function Page() {
         console.log('Sound notification not available:', error);
       }
     }
+  }, [soundEnabled]);
+
+  // Helper function to get display name for a place
+  const getPlaceDisplayName = (place: Place): string => {
+    return place.tags?.name || place.tags?.amenity || place.tags?.tourism || place.tags?.leisure || 'Unnamed Place';
   };
 
   // Function to show new places alert
-  const showNewPlacesAlert = (newPlaces: Place[]) => {
+  const showNewPlacesAlert = useCallback((newPlaces: Place[]) => {
     if (newPlaces.length > 0) {
       setNewPlacesAlert({ count: newPlaces.length, timestamp: Date.now() });
-      console.log(`🎯 Discovered ${newPlaces.length} new places:`, newPlaces.map(p => p.display_name));
+      console.log(`🎯 Discovered ${newPlaces.length} new places:`, newPlaces.map(p => getPlaceDisplayName(p)));
       
       // Add to journey summary
       setJourneyPlaces(prev => [...prev, ...newPlaces]);
@@ -181,7 +186,7 @@ export default function Page() {
         setNewPlacesAlert(null);
       }, 4000);
     }
-  };
+  }, [playNotificationSound]);
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Earth's radius in kilometers
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -215,7 +220,6 @@ export default function Page() {
     
     // Trigger search if moved more than 500 meters
     if (distance > 0.5 && !isSearching) {
-      const oldPlaces = [...places]; // Store current places for comparison
       setLastSearchPosition({ lat: newLat, lon: newLon });
       setCenter({ lat: newLat, lon: newLon });
       console.log(`Moved ${distance.toFixed(2)}km - triggering new search`);
@@ -229,9 +233,6 @@ export default function Page() {
           console.log('Auto-search: Using favorites');
           await handleButton1(); // Use favorites search
         }
-        
-        // After search completes, check for new places
-        // Note: We'll compare in a useEffect that watches places changes
       } catch (error) {
         console.error('Auto-search failed:', error);
       }
@@ -257,6 +258,18 @@ export default function Page() {
           setCurrentPosition(position);
           setIsRequestingLocation(false);
           
+          // Log current position for debugging/future features
+          console.log('Live tracking: Current position stored', { 
+            lat: position.coords.latitude, 
+            lon: position.coords.longitude,
+            accuracy: position.coords.accuracy 
+          });
+          
+          // Use currentPosition state for validation
+          if (currentPosition) {
+            console.log('Previous position cleared, new tracking session started');
+          }
+          
           // Set initial search position but don't trigger search yet
           // Let user choose categories first
           setLastSearchPosition({ 
@@ -272,6 +285,18 @@ export default function Page() {
             (newPosition) => {
               console.log('Location updated:', newPosition.coords);
               setCurrentPosition(newPosition);
+              
+              // Log position update for debugging
+              console.log('Live tracking: Position updated', {
+                lat: newPosition.coords.latitude,
+                lon: newPosition.coords.longitude,
+                accuracy: newPosition.coords.accuracy,
+                timestamp: new Date(newPosition.timestamp).toLocaleTimeString(),
+                previousPosition: currentPosition ? {
+                  lat: currentPosition.coords.latitude,
+                  lon: currentPosition.coords.longitude
+                } : null
+              });
               
               // Trigger automatic search on significant location changes
               handleLocationBasedSearch(newPosition);
@@ -331,8 +356,9 @@ export default function Page() {
       setCurrentPosition(null);
       setIsRequestingLocation(false);
       setLastSearchPosition(null);
-      setDiscoveredPlaces([]);
+      setJourneyPlaces([]);
       setNewPlacesAlert(null);
+      previousPlacesRef.current = [];
       setJourneyPlaces([]);
     }
   };
@@ -390,15 +416,15 @@ export default function Page() {
 
   // Watch for new places discovered during live tracking
   useEffect(() => {
-    if (isLocationTracking && discoveredPlaces.length > 0) {
-      const newPlaces = findNewPlaces(discoveredPlaces, places);
+    if (isLocationTracking && previousPlacesRef.current.length > 0) {
+      const newPlaces = findNewPlaces(previousPlacesRef.current, places);
       if (newPlaces.length > 0) {
         showNewPlacesAlert(newPlaces);
       }
     }
-    // Update discovered places for next comparison
-    setDiscoveredPlaces([...places]);
-  }, [places, isLocationTracking]);
+    // Update reference for next comparison
+    previousPlacesRef.current = [...places];
+  }, [places, isLocationTracking, findNewPlaces, showNewPlacesAlert]);
 
   const hideReport = () => {
     setReportVisible(false);
@@ -1060,6 +1086,7 @@ export default function Page() {
         onSoundToggle={toggleSoundEnabled}
         journeyPlacesCount={journeyPlaces.length}
         onShowJourney={openJourneySummary}
+        isRequestingLocation={isRequestingLocation}
       />
 
       <CategoryModal
@@ -1137,7 +1164,7 @@ export default function Page() {
                     <div key={`${place.id}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="text-lg">📍</div>
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">{place.display_name}</div>
+                        <div className="font-medium text-gray-900">{getPlaceDisplayName(place)}</div>
                         {place.tags.tourism && (
                           <div className="text-sm text-blue-600 mt-1">
                             {place.tags.tourism}
