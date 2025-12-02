@@ -39,10 +39,12 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       'brand:wikidata',
       'operator:wikidata',
       'building',
+      'building:yes',
       'building:levels',
       'building:colour',
       'roof:shape',
       'roof:material',
+      'heritage',
       'created_by',
       'survey:date'
     ]),
@@ -93,6 +95,8 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       'tourism:hotel': () => ({ label: '', value: 'hotel' }),
       'tourism:museum': () => ({ label: '', value: 'Museum' }),
       'highway:bus_stop': () => ({ label: '', value: 'bus stop' }),
+      'historic:castle': () => ({ label: '', value: 'Castle' }),
+      'historic': (v: string) => v === 'castle' ? ({ label: '', value: 'Castle' }) : ({ label: 'historic:', value: v }),
       'alt_name': () => ({ label: 'aka:', value: null }),
       'ele': (v: string) => ({ label: 'altitude:', value: `${v}m` }),
       'air_conditioning': () => ({ label: 'air condition:', value: null }),
@@ -105,11 +109,11 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
 
   // Helper function to check if a tag should be excluded
   const shouldExcludeTag = (key: string): boolean => {
-    // Check if tag is in excluded list
-    if (tagConfig.excludedTags.has(key)) return true;
+    // Check if tag is in excluded list (case-insensitive)
+    if (tagConfig.excludedTags.has(key.toLowerCase())) return true;
     
-    // Check if tag starts with any excluded prefix
-    return tagConfig.excludedPrefixes.some(prefix => key.startsWith(prefix));
+    // Check if tag starts with any excluded prefix (case-insensitive)
+    return tagConfig.excludedPrefixes.some(prefix => key.toLowerCase().startsWith(prefix.toLowerCase()));
   };
 
   // Helper function to format a tag according to rules
@@ -638,16 +642,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       }
                       
                       // Add other relevant tags (excluding internal/technical ones)
-                      const relevantTags = tags.filter(([k]) => 
-                        !k.startsWith('addr:') && 
-                        !k.startsWith('contact:') && 
-                        !k.startsWith('ref:') && 
-                        k !== 'name' && 
-                        k !== 'wheelchair' && 
-                        k !== 'direction' && 
-                        k !== 'source' && 
-                        k !== 'panoramax'
-                      );
+                      const relevantTags = tags.filter(([k]) => !shouldExcludeTag(k));
                       
                       relevantTags.forEach(([k, v]) => {
                         let displayKey = k;
@@ -768,7 +763,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                     .map(addrKey => tags.find(([k]) => k === addrKey))
                     .filter((tag): tag is [string, string] => tag !== undefined);
                   
-                  const otherTags = tags.filter(([k]) => !k.startsWith('addr:') && !k.startsWith('contact:') && !k.startsWith('ref:') && k !== 'name' && k !== 'wheelchair' && k !== 'direction' && k !== 'source' && k !== 'panoramax');
+                  const otherTags = tags.filter(([k]) => !shouldExcludeTag(k));
                   
                   // Check if we have both street and housenumber to combine them
                   const streetTag = addressTags.find(([k]) => k === 'addr:street');

@@ -108,10 +108,19 @@ export default function AddressSearchModal({
     // Set new timeout
     debounceTimeoutRef.current = setTimeout(() => {
       searchAddresses(query);
-    }, 300); // 300ms debounce
+    }, 200); // 200ms debounce for more responsive feel
   }, []);  const handleAddressInput = (value: string) => {
     setAddressInputState(value);
     if (keepLocation) setKeptAddress(value);
+    
+    // Show immediate feedback for typing
+    if (value.length >= 3) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
+      setAddressSuggestions([]);
+    }
+    
     debouncedSearch(value);
   };
 
@@ -160,18 +169,26 @@ export default function AddressSearchModal({
         </div>
         
         <div className="mb-4">
-          <input
-            type="text"
-            value={addressInput}
-            onChange={(e) => handleAddressInput(e.target.value)}
-            placeholder="Type an address, city, or place name..."
-            className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg"
-            autoFocus
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={addressInput}
+              onChange={(e) => handleAddressInput(e.target.value)}
+              placeholder="Type an address, city, or place name..."
+              className={`w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base sm:text-lg ${isSearching ? 'pr-12' : ''}`}
+              autoFocus
+            />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+              </div>
+            )}
+          </div>
+          
           {isSearching && (
-            <div className="text-sm text-blue-600 mt-1 flex items-center gap-2">
-              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-              Searching...
+            <div className="text-sm text-blue-600 mb-3 flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-md mt-2">
+              <div className="animate-pulse h-2 w-2 bg-blue-600 rounded-full"></div>
+              Searching for addresses...
             </div>
           )}
           <div className="flex items-center gap-2 mt-2">
@@ -214,9 +231,11 @@ export default function AddressSearchModal({
           </div>
         )}
 
-        {addressInput.length >= 3 && addressSuggestions.length === 0 && (
-          <div className="text-center text-gray-500 py-4">
-            No addresses found. Try a different search term.
+        {addressInput.length >= 3 && addressSuggestions.length === 0 && !isSearching && (
+          <div className="text-center text-gray-500 py-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+            <div className="text-lg">🔍</div>
+            <div className="mt-1">No addresses found</div>
+            <div className="text-sm mt-1">Try a different search term or check spelling</div>
           </div>
         )}
 
