@@ -567,6 +567,9 @@ export default function Page() {
   
   // Helper function to perform search at given location
   const performSearchAtLocation = async (lat: number, lon: number) => {
+    // Set the search position for live tracking logic
+    setLastSearchPosition({ lat, lon });
+    
     // Reverse geocode to get the address of current location
     try {
       const geocodeResponse = await fetch(

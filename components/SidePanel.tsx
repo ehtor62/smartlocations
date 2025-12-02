@@ -95,6 +95,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       'tourism:hotel': () => ({ label: '', value: 'hotel' }),
       'tourism:museum': () => ({ label: '', value: 'Museum' }),
       'highway:bus_stop': () => ({ label: '', value: 'bus stop' }),
+      'highway:elevator': () => ({ label: '', value: 'Elevator' }),
       'historic:castle': () => ({ label: '', value: 'Castle' }),
       'historic': (v: string) => v === 'castle' ? ({ label: '', value: 'Castle' }) : ({ label: 'historic:', value: v }),
       'alt_name': () => ({ label: 'aka:', value: null }),
