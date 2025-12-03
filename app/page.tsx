@@ -1021,6 +1021,10 @@ export default function Page() {
 
         // Move the map to the address in the center
         setCenter({ lat: parseFloat(lat), lon: parseFloat(lon) });
+        
+        // Set the search position for live tracking logic  
+        setLastSearchPosition({ lat: parseFloat(lat), lon: parseFloat(lon) });
+        
         setShowGlobeSpinner(true); // Show spinner after location is found
 
         // Get tags for all selected categories with performance optimization
@@ -1066,6 +1070,10 @@ export default function Page() {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         setCenter({ lat, lon });
+        
+        // Set the search position for live tracking logic
+        setLastSearchPosition({ lat, lon });
+        
         setShowGlobeSpinner(true); // Show spinner after location is found
 
         // Reverse geocode to get the address of current location
