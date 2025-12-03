@@ -45,6 +45,17 @@ if (typeof document !== 'undefined') {
   }
 }
 
+// Add Eruda console for mobile debugging
+if (typeof window !== 'undefined' && !(window as typeof window & { eruda?: { init: () => void } }).eruda) {
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+  script.onload = function() {
+    (window as typeof window & { eruda: { init: () => void } }).eruda.init();
+    console.log('📱 Mobile console enabled! Look for floating icon on screen.');
+  };
+  document.head.appendChild(script);
+}
+
 // Place type matches the structure returned from the API
 export interface Place {
   id: number;
@@ -203,12 +214,20 @@ export default function Page() {
     const newLat = position.coords.latitude;
     const newLon = position.coords.longitude;
     
+    console.log('🔍 handleLocationBasedSearch called with:', { newLat, newLon });
+    console.log('🔍 Current state:', { 
+      lastSearchPosition, 
+      selectedCategories: selectedCategories.length, 
+      isFavoritesSearch,
+      isSearching 
+    });
+    
     // Only trigger automatic searches if user has already made an initial search choice
     if (!lastSearchPosition || (selectedCategories.length === 0 && !isFavoritesSearch)) {
       // User hasn't made any search yet - just update position and wait
       setLastSearchPosition({ lat: newLat, lon: newLon });
       setCenter({ lat: newLat, lon: newLon });
-      console.log('Location updated but no search preferences set yet');
+      console.log('🔍 Location updated but no search preferences set yet');
       return;
     }
     
@@ -218,32 +237,38 @@ export default function Page() {
       newLat, newLon
     );
     
+    console.log(`🔍 Distance moved: ${distance.toFixed(3)}km (threshold: 0.5km)`);
+    
     // Trigger search if moved more than 500 meters
     if (distance > 0.5 && !isSearching) {
       setLastSearchPosition({ lat: newLat, lon: newLon });
       setCenter({ lat: newLat, lon: newLon });
-      console.log(`Moved ${distance.toFixed(2)}km - triggering new search`);
+      console.log(`🎯 Moved ${distance.toFixed(2)}km - triggering new search for live tracking`);
       
       // Show visual feedback immediately for auto-search
       setShowGlobeSpinner(true);
       setLoading(true);
       setIsSearching(true);
       
-      // Trigger search with current categories/favorites
+      // Trigger search with current categories/favorites for live tracking
       try {
         if (selectedCategories.length > 0) {
-          console.log('Auto-search: Using selected categories');
-          await handleMultiCategorySearch();
+          console.log('🎯 Auto-search: Using selected categories');
+          await handleLiveTrackingSearch(newLat, newLon, selectedCategories);
         } else if (isFavoritesSearch) {
-          console.log('Auto-search: Using favorites');
-          await handleButton1(); // Use favorites search
+          console.log('🎯 Auto-search: Using favorites');
+          await handleLiveTrackingFavoritesSearch(newLat, newLon);
         }
       } catch (error) {
-        console.error('Auto-search failed:', error);
+        console.error('❌ Auto-search failed:', error);
         setShowGlobeSpinner(false); // Hide spinner on error
         setLoading(false);
         setIsSearching(false);
       }
+    } else if (distance <= 0.5) {
+      console.log('🔍 Movement too small, no search triggered');
+    } else if (isSearching) {
+      console.log('🔍 Search already in progress, skipping');
     }
   };
   const toggleLocationTracking = () => {
@@ -616,6 +641,108 @@ export default function Page() {
       } else {
         alert('Search failed. Please try again.');
       }
+    } finally {
+      setLoading(false);
+      setIsSearching(false);
+    }
+  };
+
+  // Special search function for live tracking with categories that appends new places
+  const handleLiveTrackingSearch = async (lat: number, lon: number, categories: string[]) => {
+    console.log('Live tracking category search at:', lat, lon, 'Categories:', categories);
+    
+    try {
+      // Get all tags for selected categories
+      const allTags: string[] = [];
+      categories.forEach(category => {
+        const categoryTags = selectedTagsInCategory[category] || tagGroups[category as keyof typeof tagGroups] || [];
+        allTags.push(...categoryTags.map(tag => tag.replace(':', '=')));
+      });
+
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, tags: allTags, limit: numberOfPlaces, radiusKm }),
+        signal: AbortSignal.timeout(60000)
+      });
+      
+      const data = await res.json();
+      const newSearchPlaces = data.places || [];
+      
+      console.log(`Live tracking found ${newSearchPlaces.length} places at new location`);
+      
+      // Find truly new places that aren't already in our current results
+      const existingIds = new Set(places.map(place => place.id));
+      const genuinelyNewPlaces = newSearchPlaces.filter((place: Place) => !existingIds.has(place.id));
+      
+      console.log(`${genuinelyNewPlaces.length} places are genuinely new discoveries`);
+      
+      if (genuinelyNewPlaces.length > 0) {
+        // Append new places to existing places
+        setPlaces(prev => [...prev, ...genuinelyNewPlaces]);
+        
+        // Trigger journey tracking
+        showNewPlacesAlert(genuinelyNewPlaces);
+      } else {
+        console.log('No new places discovered at this location');
+      }
+      
+      setShowGlobeSpinner(false);
+      
+    } catch (err) {
+      setShowGlobeSpinner(false);
+      console.error('Live tracking search failed:', err);
+      // Don't alert on live tracking failures, just log them
+    } finally {
+      setLoading(false);
+      setIsSearching(false);
+    }
+  };
+
+  // Special search function for live tracking that appends new places
+  const handleLiveTrackingFavoritesSearch = async (lat: number, lon: number) => {
+    console.log('Live tracking favorites search at:', lat, lon);
+    
+    try {
+      // Use Favorites tags from allowedtags.ts
+      const tags = [
+        ...tagGroups.Favorites.map(tag => tag.replace(':', '=')),
+      ];
+
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces, radiusKm }),
+        signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
+      });
+      
+      const data = await res.json();
+      const newSearchPlaces = data.places || [];
+      
+      console.log(`Live tracking found ${newSearchPlaces.length} places at new location`);
+      
+      // Find truly new places that aren't already in our current results
+      const existingIds = new Set(places.map(place => place.id));
+      const genuinelyNewPlaces = newSearchPlaces.filter((place: Place) => !existingIds.has(place.id));
+      
+      console.log(`${genuinelyNewPlaces.length} places are genuinely new discoveries`);
+      
+      if (genuinelyNewPlaces.length > 0) {
+        // Append new places to existing places
+        setPlaces(prev => [...prev, ...genuinelyNewPlaces]);
+        
+        // Trigger journey tracking
+        showNewPlacesAlert(genuinelyNewPlaces);
+      } else {
+        console.log('No new places discovered at this location');
+      }
+      
+      setShowGlobeSpinner(false);
+      
+    } catch (err) {
+      setShowGlobeSpinner(false);
+      console.error('Live tracking search failed:', err);
+      // Don't alert on live tracking failures, just log them
     } finally {
       setLoading(false);
       setIsSearching(false);
