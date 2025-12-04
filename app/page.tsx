@@ -140,6 +140,11 @@ export default function Page() {
   const [journeyPlaces, setJourneyPlaces] = useState<Place[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showJourneySummary, setShowJourneySummary] = useState(false);
+  // Store live tracking search parameters separately from UI state
+  const [liveTrackingSearchParams, setLiveTrackingSearchParams] = useState<{
+    type: 'categories' | 'favorites';
+    categories?: string[];
+  } | null>(null);
   const previousPlacesRef = useRef<Place[]>([]);
 
   // Function to compare place arrays and find new places
@@ -219,11 +224,12 @@ export default function Page() {
       lastSearchPosition, 
       selectedCategories: selectedCategories.length, 
       isFavoritesSearch,
-      isSearching 
+      isSearching,
+      liveTrackingSearchParams
     });
     
     // Only trigger automatic searches if user has already made an initial search choice
-    if (!lastSearchPosition || (selectedCategories.length === 0 && !isFavoritesSearch)) {
+    if (!lastSearchPosition || !liveTrackingSearchParams) {
       // User hasn't made any search yet - just update position and wait
       setLastSearchPosition({ lat: newLat, lon: newLon });
       setCenter({ lat: newLat, lon: newLon });
@@ -252,11 +258,11 @@ export default function Page() {
       
       // Trigger search with current categories/favorites for live tracking
       try {
-        if (selectedCategories.length > 0) {
-          console.log('🎯 Auto-search: Using selected categories');
-          await handleLiveTrackingSearch(newLat, newLon, selectedCategories);
-        } else if (isFavoritesSearch) {
-          console.log('🎯 Auto-search: Using favorites');
+        if (liveTrackingSearchParams.type === 'categories' && liveTrackingSearchParams.categories) {
+          console.log('🎯 Auto-search: Using stored categories', liveTrackingSearchParams.categories);
+          await handleLiveTrackingSearch(newLat, newLon, liveTrackingSearchParams.categories);
+        } else if (liveTrackingSearchParams.type === 'favorites') {
+          console.log('🎯 Auto-search: Using stored favorites');
           await handleLiveTrackingFavoritesSearch(newLat, newLon);
         }
       } catch (error) {
@@ -389,6 +395,7 @@ export default function Page() {
       setCurrentPosition(null);
       setIsRequestingLocation(false);
       setLastSearchPosition(null);
+      setLiveTrackingSearchParams(null);
       setJourneyPlaces([]);
       setNewPlacesAlert(null);
       previousPlacesRef.current = [];
@@ -594,6 +601,11 @@ export default function Page() {
   const performSearchAtLocation = async (lat: number, lon: number) => {
     // Set the search position for live tracking logic
     setLastSearchPosition({ lat, lon });
+    
+    // Store search parameters for live tracking
+    setLiveTrackingSearchParams({
+      type: 'favorites'
+    });
     
     // Reverse geocode to get the address of current location
     try {
@@ -1025,6 +1037,12 @@ export default function Page() {
         // Set the search position for live tracking logic  
         setLastSearchPosition({ lat: parseFloat(lat), lon: parseFloat(lon) });
         
+        // Store search parameters for live tracking
+        setLiveTrackingSearchParams({
+          type: 'categories',
+          categories: selectedCategories
+        });
+        
         setShowGlobeSpinner(true); // Show spinner after location is found
 
         // Get tags for all selected categories with performance optimization
@@ -1073,6 +1091,12 @@ export default function Page() {
         
         // Set the search position for live tracking logic
         setLastSearchPosition({ lat, lon });
+        
+        // Store search parameters for live tracking
+        setLiveTrackingSearchParams({
+          type: 'categories',
+          categories: selectedCategories
+        });
         
         setShowGlobeSpinner(true); // Show spinner after location is found
 
