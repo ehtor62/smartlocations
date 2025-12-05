@@ -266,7 +266,7 @@ export default function Page() {
     
     // Check if moved significantly from last search location
     // Use lastSearchPosition if available, otherwise this is the first location after search initiation
-    let referencePosition = lastSearchPosition;
+    const referencePosition = lastSearchPosition;
     let distance = 0;
     
     if (referencePosition) {
