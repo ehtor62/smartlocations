@@ -145,6 +145,11 @@ export default function Page() {
     type: 'categories' | 'favorites';
     categories?: string[];
   } | null>(null);
+  // Ref to track immediate state for timing-sensitive operations
+  const liveTrackingParamsRef = useRef<{
+    type: 'categories' | 'favorites';
+    categories?: string[];
+  } | null>(null);
   const previousPlacesRef = useRef<Place[]>([]);
 
   // Function to compare place arrays and find new places
@@ -220,30 +225,63 @@ export default function Page() {
     const newLon = position.coords.longitude;
     
     console.log('🔍 handleLocationBasedSearch called with:', { newLat, newLon });
+    
+    // Skip location-based search if a search is currently running
+    if (isSearching) {
+      console.log('🔍 Search in progress, skipping location-based search check');
+      return;
+    }
+    
+    // Also skip if this appears to be the initial location that triggered the search
+    // Check if we're very close to where we just started a search
+    if (lastSearchPosition && 
+        Math.abs(lastSearchPosition.lat - newLat) < 0.0001 && 
+        Math.abs(lastSearchPosition.lon - newLon) < 0.0001) {
+      console.log('🔍 Location matches recent search position, skipping check');
+      return;
+    }
+    
     console.log('🔍 Current state:', { 
       lastSearchPosition, 
       selectedCategories: selectedCategories.length, 
       isFavoritesSearch,
       isSearching,
-      liveTrackingSearchParams
+      liveTrackingSearchParams: liveTrackingSearchParams,
+      liveTrackingSearchParamsRef: liveTrackingParamsRef.current
     });
     
     // Only trigger automatic searches if user has already made an initial search choice
-    if (!lastSearchPosition || !liveTrackingSearchParams) {
+    // Use ref for immediate access to avoid React state timing issues
+    const currentTrackingParams = liveTrackingParamsRef.current;
+    if (!currentTrackingParams) {
       // User hasn't made any search yet - just update position and wait
       setLastSearchPosition({ lat: newLat, lon: newLon });
       setCenter({ lat: newLat, lon: newLon });
       console.log('🔍 Location updated but no search preferences set yet');
+      console.log('🔍 Missing: trackingParams?', !currentTrackingParams);
       return;
     }
     
-    // Check if moved significantly from last search location
-    const distance = calculateDistance(
-      lastSearchPosition.lat, lastSearchPosition.lon,
-      newLat, newLon
-    );
+    console.log('🔍 Live tracking active with params:', currentTrackingParams);
     
-    console.log(`🔍 Distance moved: ${distance.toFixed(3)}km (threshold: 0.5km)`);
+    // Check if moved significantly from last search location
+    // Use lastSearchPosition if available, otherwise this is the first location after search initiation
+    let referencePosition = lastSearchPosition;
+    let distance = 0;
+    
+    if (referencePosition) {
+      distance = calculateDistance(
+        referencePosition.lat, referencePosition.lon,
+        newLat, newLon
+      );
+      console.log(`🔍 Distance moved: ${distance.toFixed(3)}km (threshold: 0.5km)`);
+    } else {
+      console.log('🔍 No reference position - treating as first location after search');
+      // For the first location after search initiation, set it as reference and don't trigger search
+      setLastSearchPosition({ lat: newLat, lon: newLon });
+      setCenter({ lat: newLat, lon: newLon });
+      return;
+    }
     
     // Trigger search if moved more than 500 meters
     if (distance > 0.5 && !isSearching) {
@@ -258,12 +296,14 @@ export default function Page() {
       
       // Trigger search with current categories/favorites for live tracking
       try {
-        if (liveTrackingSearchParams.type === 'categories' && liveTrackingSearchParams.categories) {
-          console.log('🎯 Auto-search: Using stored categories', liveTrackingSearchParams.categories);
-          await handleLiveTrackingSearch(newLat, newLon, liveTrackingSearchParams.categories);
-        } else if (liveTrackingSearchParams.type === 'favorites') {
-          console.log('🎯 Auto-search: Using stored favorites');
+        if (currentTrackingParams?.type === 'categories' && currentTrackingParams.categories) {
+          console.log('🎯 Auto-search: Using stored categories', currentTrackingParams.categories);
+          await handleLiveTrackingSearch(newLat, newLon, currentTrackingParams.categories);
+        } else if (currentTrackingParams?.type === 'favorites' || isFavoritesSearch) {
+          console.log('🎯 Auto-search: Using stored favorites (or active favorites search)');
           await handleLiveTrackingFavoritesSearch(newLat, newLon);
+        } else {
+          console.log('🎯 No valid tracking params for auto-search:', currentTrackingParams);
         }
       } catch (error) {
         console.error('❌ Auto-search failed:', error);
@@ -396,6 +436,7 @@ export default function Page() {
       setIsRequestingLocation(false);
       setLastSearchPosition(null);
       setLiveTrackingSearchParams(null);
+      liveTrackingParamsRef.current = null; // Clear ref as well
       setJourneyPlaces([]);
       setNewPlacesAlert(null);
       previousPlacesRef.current = [];
@@ -510,7 +551,12 @@ export default function Page() {
     setSelectedCategories([]);
     setAddressModalVisible(false);
     setSearchMode('current');
-    setIsFavoritesSearch(false); // Reset favorites search flag
+    // Only reset favorites search and tracking params if live tracking is NOT active
+    if (!isLocationTracking) {
+      setIsFavoritesSearch(false); // Reset favorites search flag
+      setLiveTrackingSearchParams(null);
+      liveTrackingParamsRef.current = null;
+    }
     setCategoryDetailsVisible(false);
     setSelectedCategoryForDetails('');
     setSelectedTagsInCategory({});
@@ -570,21 +616,51 @@ export default function Page() {
     setIsFavoritesSearch(true); // Mark this as a favorites search
     setModalVisible(false); // Hide modal when Button 1 is clicked
     
+    console.log('🔍 handleButton1: Live tracking check:', { isLocationTracking, hasCurrentPosition: !!currentPosition });
+    
     // If live tracking is active and we have current position, use it immediately
     if (isLocationTracking && currentPosition) {
       const lat = currentPosition.coords.latitude;
       const lon = currentPosition.coords.longitude;
       setCenter({ lat, lon });
+      
+      // Set live tracking state IMMEDIATELY before search starts
+      setLastSearchPosition({ lat, lon });
+      setLiveTrackingSearchParams({ type: 'favorites' });
+      liveTrackingParamsRef.current = { type: 'favorites' }; // Immediate ref update
+      setIsFavoritesSearch(true); // Ensure this is set again here
+      console.log('🎯 Live tracking state set immediately for favorites');
+      console.log('🎯 State values set to:', { 
+        lastSearchPosition: { lat, lon }, 
+        liveTrackingSearchParams: { type: 'favorites' },
+        isFavoritesSearch: true 
+      });
+      
       setShowGlobeSpinner(true); // Show spinner immediately
+      
+      console.log('🔍 handleButton1: Using live tracking position:', { lat, lon });
       
       // Use existing position instead of requesting new geolocation
       await performSearchAtLocation(lat, lon);
     } else {
+      console.log('🔍 handleButton1: Using new geolocation request');
+      
       // Original geolocation flow for when live tracking is not active
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         setCenter({ lat, lon });
+        
+        // Set search position for non-live tracking case
+        setLastSearchPosition({ lat, lon });
+        
+        // If live tracking is enabled, also set the tracking parameters
+        if (isLocationTracking) {
+          setLiveTrackingSearchParams({ type: 'favorites' });
+          liveTrackingParamsRef.current = { type: 'favorites' }; // Also update ref immediately
+          console.log('🎯 Live tracking state set in fallback geolocation path');
+        }
+        
         setShowGlobeSpinner(true); // Show globe spinner only after location is found
         
         await performSearchAtLocation(lat, lon);
@@ -599,21 +675,25 @@ export default function Page() {
   
   // Helper function to perform search at given location
   const performSearchAtLocation = async (lat: number, lon: number) => {
-    // Set the search position for live tracking logic
-    setLastSearchPosition({ lat, lon });
+    // Note: lastSearchPosition and liveTrackingSearchParams are already set by caller
     
-    // Store search parameters for live tracking
-    setLiveTrackingSearchParams({
-      type: 'favorites'
+    console.log('🎯 performSearchAtLocation: Entry state:', { 
+      isFavoritesSearch, 
+      liveTrackingSearchParams, 
+      liveTrackingParamsRef: liveTrackingParamsRef.current 
     });
+    console.log('🎯 Favorites search: Starting search at position:', { lat, lon });
     
     // Reverse geocode to get the address of current location
     try {
+      console.log('🔍 Starting reverse geocoding...');
       const geocodeResponse = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+        `/api/address-search?lat=${lat}&lon=${lon}&reverse=true`
       );
+      console.log('🔍 Reverse geocoding response:', geocodeResponse.ok);
       if (geocodeResponse.ok) {
         const geocodeData = await geocodeResponse.json();
+        console.log('🔍 Reverse geocoding data:', geocodeData);
         if (geocodeData.display_name) {
           setSelectedLocationName(geocodeData.display_name);
         }
@@ -625,6 +705,7 @@ export default function Page() {
 
     // send to server
     try {
+      console.log('🔍 Starting favorites search...');
       // Use Nature and Culture tags from allowedtags.ts
       const tags = [
         ...tagGroups.Favorites.map(tag => tag.replace(':', '=')),
@@ -638,24 +719,52 @@ export default function Page() {
         signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
       });
       const data = await res.json();
+      console.log('🔍 Favorites search successful, found', data.places?.length || 0, 'places');
+      console.log('🔍 State right after search success:', { isFavoritesSearch, liveTrackingSearchParams });
+      console.log('🔍 About to setPlaces and setPanelOpen...');
       setPlaces(data.places || []);
+      console.log('🔍 After setPlaces, state:', { isFavoritesSearch, liveTrackingSearchParams });
       setPanelOpen(true);
+      console.log('🔍 After setPanelOpen, state:', { isFavoritesSearch, liveTrackingSearchParams });
       setShowGlobeSpinner(false); // Hide spinner when panel opens
     } catch (err) {
       setShowGlobeSpinner(false);
-      console.error(err);
+      console.error('🔍 Favorites search failed:', err);
       if (err instanceof Error && err.name === 'TimeoutError') {
         alert('Search timed out. The server might be busy. Please try again.');
-        resetAppToInitialState();
+        // Don't reset app state during live tracking - just reset search state
+        if (!isLocationTracking) {
+          resetAppToInitialState();
+        }
       } else if (err instanceof Error && err.message.includes('timeout')) {
         alert('Search timed out. Please try again or search for fewer categories.');
-        resetAppToInitialState();
+        // Don't reset app state during live tracking - just reset search state  
+        if (!isLocationTracking) {
+          resetAppToInitialState();
+        }
       } else {
         alert('Search failed. Please try again.');
+        console.error('🔍 Full error details:', err);
       }
     } finally {
+      console.log('🔍 Favorites search cleanup: Setting loading and searching to false');
+      console.log('🔍 State before cleanup:', { 
+        isFavoritesSearch, 
+        liveTrackingSearchParams,
+        liveTrackingParamsRef: liveTrackingParamsRef.current,
+        isLocationTracking 
+      });
       setLoading(false);
       setIsSearching(false);
+      console.log('🔍 Favorites search completed');
+      // Re-log state after cleanup to see if anything changed
+      setTimeout(() => {
+        console.log('🔍 State after cleanup (async check):', { 
+          isFavoritesSearch, 
+          liveTrackingSearchParams,
+          liveTrackingParamsRef: liveTrackingParamsRef.current 
+        });
+      }, 100);
     }
   };
 
@@ -1042,6 +1151,10 @@ export default function Page() {
           type: 'categories',
           categories: selectedCategories
         });
+        liveTrackingParamsRef.current = {
+          type: 'categories',
+          categories: selectedCategories
+        }; // Immediate ref update
         
         setShowGlobeSpinner(true); // Show spinner after location is found
 
@@ -1097,13 +1210,17 @@ export default function Page() {
           type: 'categories',
           categories: selectedCategories
         });
+        liveTrackingParamsRef.current = {
+          type: 'categories',
+          categories: selectedCategories
+        }; // Immediate ref update
         
         setShowGlobeSpinner(true); // Show spinner after location is found
 
         // Reverse geocode to get the address of current location
         try {
           const geocodeResponse = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+            `/api/address-search?lat=${lat}&lon=${lon}&reverse=true`
           );
           if (geocodeResponse.ok) {
             const geocodeData = await geocodeResponse.json();
