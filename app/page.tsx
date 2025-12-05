@@ -150,6 +150,8 @@ export default function Page() {
     type: 'categories' | 'favorites';
     categories?: string[];
   } | null>(null);
+  // Ref to track last search position for immediate access
+  const lastSearchPositionRef = useRef<{ lat: number; lon: number } | null>(null);
   const previousPlacesRef = useRef<Place[]>([]);
 
   // Function to compare place arrays and find new places
@@ -265,8 +267,8 @@ export default function Page() {
     console.log('🔍 Live tracking active with params:', currentTrackingParams);
     
     // Check if moved significantly from last search location
-    // Use lastSearchPosition if available, otherwise this is the first location after search initiation
-    const referencePosition = lastSearchPosition;
+    // Use ref for immediate access to avoid React state timing issues
+    const referencePosition = lastSearchPositionRef.current || lastSearchPosition;
     let distance = 0;
     
     if (referencePosition) {
@@ -279,6 +281,7 @@ export default function Page() {
       console.log('🔍 No reference position - treating as first location after search');
       // For the first location after search initiation, set it as reference and don't trigger search
       setLastSearchPosition({ lat: newLat, lon: newLon });
+      lastSearchPositionRef.current = { lat: newLat, lon: newLon }; // Also update ref immediately
       setCenter({ lat: newLat, lon: newLon });
       return;
     }
@@ -286,6 +289,7 @@ export default function Page() {
     // Trigger search if moved more than 500 meters
     if (distance > 0.5 && !isSearching) {
       setLastSearchPosition({ lat: newLat, lon: newLon });
+      lastSearchPositionRef.current = { lat: newLat, lon: newLon }; // Update ref immediately
       setCenter({ lat: newLat, lon: newLon });
       console.log(`🎯 Moved ${distance.toFixed(2)}km - triggering new search for live tracking`);
       
@@ -435,6 +439,7 @@ export default function Page() {
       setCurrentPosition(null);
       setIsRequestingLocation(false);
       setLastSearchPosition(null);
+      lastSearchPositionRef.current = null; // Clear ref as well
       setLiveTrackingSearchParams(null);
       liveTrackingParamsRef.current = null; // Clear ref as well
       setJourneyPlaces([]);
@@ -626,6 +631,7 @@ export default function Page() {
       
       // Set live tracking state IMMEDIATELY before search starts
       setLastSearchPosition({ lat, lon });
+      lastSearchPositionRef.current = { lat, lon }; // Immediate ref update
       setLiveTrackingSearchParams({ type: 'favorites' });
       liveTrackingParamsRef.current = { type: 'favorites' }; // Immediate ref update
       setIsFavoritesSearch(true); // Ensure this is set again here
@@ -653,6 +659,7 @@ export default function Page() {
         
         // Set search position for non-live tracking case
         setLastSearchPosition({ lat, lon });
+        lastSearchPositionRef.current = { lat, lon }; // Also update ref immediately
         
         // If live tracking is enabled, also set the tracking parameters
         if (isLocationTracking) {
@@ -1145,6 +1152,7 @@ export default function Page() {
         
         // Set the search position for live tracking logic  
         setLastSearchPosition({ lat: parseFloat(lat), lon: parseFloat(lon) });
+        lastSearchPositionRef.current = { lat: parseFloat(lat), lon: parseFloat(lon) }; // Update ref immediately
         
         // Store search parameters for live tracking
         setLiveTrackingSearchParams({
@@ -1204,6 +1212,7 @@ export default function Page() {
         
         // Set the search position for live tracking logic
         setLastSearchPosition({ lat, lon });
+        lastSearchPositionRef.current = { lat, lon }; // Update ref immediately
         
         // Store search parameters for live tracking
         setLiveTrackingSearchParams({
