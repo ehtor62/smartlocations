@@ -121,6 +121,8 @@ export default function Page() {
   const [reportMinimized, setReportMinimized] = useState(false);
   // Live tracking toggle state
   const [liveTracking, setLiveTracking] = useState(false);
+  const [watchId, setWatchId] = useState<number | null>(null);
+  const [lastSearchLocation, setLastSearchLocation] = useState<{lat: number, lon: number} | null>(null);
 
   // Load user's custom attractions when user logs in
   useEffect(() => {
@@ -151,6 +153,140 @@ export default function Page() {
       return () => clearTimeout(timer);
     }
   }, [user?.uid]);
+
+  // Handle live tracking
+  useEffect(() => {
+    if (liveTracking && 'geolocation' in navigator) {
+      console.log('Starting live tracking...');
+      
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          const currentLat = position.coords.latitude;
+          const currentLon = position.coords.longitude;
+          
+          // Check if we have a last search location and if user moved significantly
+          if (lastSearchLocation) {
+            const distance = haversineDistance(
+              lastSearchLocation.lat, 
+              lastSearchLocation.lon, 
+              currentLat, 
+              currentLon
+            );
+            
+            // If user moved more than 500 meters, trigger new search
+            if (distance > 500) {
+              console.log(`User moved ${Math.round(distance)}m - triggering new search`);
+              
+              // Update center to new location
+              setCenter({ lat: currentLat, lon: currentLon });
+              
+              // Only auto-search if we have an active search (panel is open)
+              if (panelOpen && !isSearching) {
+                performLiveSearch(currentLat, currentLon);
+              }
+            }
+          }
+        },
+        (error) => {
+          console.error('Live tracking error:', error);
+          // Don't alert for minor errors, just log them
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 5000 // Accept cached location up to 5 seconds old
+        }
+      );
+      
+      setWatchId(id);
+      
+      return () => {
+        if (id !== null) {
+          navigator.geolocation.clearWatch(id);
+        }
+      };
+    } else if (!liveTracking && watchId !== null) {
+      console.log('Stopping live tracking...');
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+  }, [liveTracking, lastSearchLocation, panelOpen, isSearching]);
+
+  // Haversine distance calculation function
+  const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Perform live search when user moves
+  const performLiveSearch = async (lat: number, lon: number) => {
+    if (isSearching) return; // Prevent multiple simultaneous searches
+    
+    setIsSearching(true);
+    setShowGlobeSpinner(true);
+    
+    try {
+      let tags: string[] = [];
+      
+      if (isFavoritesSearch) {
+        // Use Favorites tags
+        tags = tagGroups.Favorites.map(tag => tag.replace(':', '='));
+      } else if (selectedCategories.length > 0) {
+        // Use selected categories tags
+        selectedCategories.forEach(categoryName => {
+          const categoryTags = selectedTagsInCategory[categoryName] || tagGroups[categoryName as keyof typeof tagGroups];
+          tags.push(...categoryTags.map(tag => tag.replace(':', '=')));
+        });
+      } else {
+        // No active search to repeat
+        setIsSearching(false);
+        setShowGlobeSpinner(false);
+        return;
+      }
+      
+      // Limit tags to prevent API overload
+      const limitedTags = tags.slice(0, 30);
+      
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces, radiusKm }),
+        signal: AbortSignal.timeout(30000) // Shorter timeout for live updates
+      });
+      
+      const data = await res.json();
+      setPlaces(data.places || []);
+      setLastSearchLocation({ lat, lon }); // Update last search location
+      
+      // Update location name via reverse geocoding (optional, for better UX)
+      try {
+        const geocodeResponse = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+        );
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json();
+          if (geocodeData.display_name) {
+            setSelectedLocationName(geocodeData.display_name);
+          }
+        }
+      } catch (geocodeError) {
+        console.log('Geocoding failed during live tracking:', geocodeError);
+      }
+      
+    } catch (err) {
+      console.error('Live search failed:', err);
+      // Don't show alert for live search failures, just log them
+    } finally {
+      setIsSearching(false);
+      setShowGlobeSpinner(false);
+    }
+  };
 
   const hideReport = () => {
     setReportVisible(false);
@@ -205,6 +341,7 @@ export default function Page() {
     setReportVisible(false);
     setReportContent('');
     setReportMinimized(false);
+    setLastSearchLocation(null); // Reset live tracking location
   };
 
   const resetAttractionsToDefault = () => {
@@ -293,6 +430,7 @@ export default function Page() {
         });
         const data = await res.json();
         setPlaces(data.places || []);
+        setLastSearchLocation({ lat, lon }); // Track search location for live tracking
         setPanelOpen(true);
         setShowGlobeSpinner(false); // Hide spinner when panel opens
       } catch (err) {
@@ -677,6 +815,7 @@ export default function Page() {
           });
           const data = await res.json();
           setPlaces(data.places || []);
+          setLastSearchLocation({ lat, lon }); // Track search location for live tracking
           setPanelOpen(true);
           setShowGlobeSpinner(false); // Hide spinner when panel opens
         } catch (err) {
@@ -728,6 +867,7 @@ export default function Page() {
         });
         const data = await res.json();
         setPlaces(data.places || []);
+        setLastSearchLocation({ lat, lon }); // Track search location for live tracking
         setPanelOpen(true);
         setShowGlobeSpinner(false); // Hide spinner when panel opens
       } catch (err) {
