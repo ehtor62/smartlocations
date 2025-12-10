@@ -123,6 +123,8 @@ export default function Page() {
   const [liveTracking, setLiveTracking] = useState(false);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [lastSearchLocation, setLastSearchLocation] = useState<{lat: number, lon: number} | null>(null);
+  // Tracking distance (1-9, maps to [10, 50, 100, 250, 500, 1000, 2000, 5000, 10000] meters)
+  const [trackingDistance, setTrackingDistance] = useState(6); // Default to 1000m (index 6)
 
   // Load user's custom attractions when user logs in
   useEffect(() => {
@@ -159,6 +161,10 @@ export default function Page() {
     if (liveTracking && 'geolocation' in navigator) {
       console.log('Starting live tracking...');
       
+      // Tracking distance values in meters
+      const trackingDistanceValues = [10, 50, 100, 250, 500, 1000, 2000, 5000, 10000];
+      const currentTrackingDistanceM = trackingDistanceValues[trackingDistance - 1];
+      
       const id = navigator.geolocation.watchPosition(
         (position) => {
           const currentLat = position.coords.latitude;
@@ -173,9 +179,9 @@ export default function Page() {
               currentLon
             );
             
-            // If user moved more than 500 meters, trigger new search
-            if (distance > 500) {
-              console.log(`User moved ${Math.round(distance)}m - triggering new search`);
+            // If user moved more than the configured tracking distance, trigger new search
+            if (distance > currentTrackingDistanceM) {
+              console.log(`User moved ${Math.round(distance)}m (threshold: ${currentTrackingDistanceM}m) - triggering new search`);
               
               // Update center to new location
               setCenter({ lat: currentLat, lon: currentLon });
@@ -210,7 +216,7 @@ export default function Page() {
       navigator.geolocation.clearWatch(watchId);
       setWatchId(null);
     }
-  }, [liveTracking, lastSearchLocation, panelOpen, isSearching]);
+  }, [liveTracking, lastSearchLocation, panelOpen, isSearching, trackingDistance]);
 
   // Haversine distance calculation function
   const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -342,6 +348,7 @@ export default function Page() {
     setReportContent('');
     setReportMinimized(false);
     setLastSearchLocation(null); // Reset live tracking location
+    setLiveTracking(false); // Turn off live tracking when panel is closed
   };
 
   const resetAttractionsToDefault = () => {
@@ -918,6 +925,8 @@ export default function Page() {
         setNumberOfPlaces={setNumberOfPlaces}
         radiusKm={radiusKm}
         setRadiusKm={setRadiusKm}
+        trackingDistance={trackingDistance}
+        setTrackingDistance={setTrackingDistance}
         keepLocation={keepLocation}
         setKeepLocation={setKeepLocation}
         onButton1={handleButton1}
@@ -982,7 +991,7 @@ export default function Page() {
         <div className="absolute top-4 right-4 z-[1002] flex gap-2">
           <button
             onClick={reopenSidePanel}
-            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-200"
+            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center w-[60px] h-[60px]"
             title="Show Results Panel"
           >
             <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">

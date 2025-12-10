@@ -6,6 +6,8 @@ interface StartingModalProps {
   setNumberOfPlaces: (n: number) => void;
   radiusKm: number;
   setRadiusKm: (n: number) => void;
+  trackingDistance: number;
+  setTrackingDistance: (n: number) => void;
   keepLocation: boolean;
   setKeepLocation: (v: boolean) => void;
   onButton1: () => void;
@@ -23,6 +25,8 @@ const StartingModal: React.FC<StartingModalProps> = ({
   setNumberOfPlaces,
   radiusKm,
   setRadiusKm,
+  trackingDistance,
+  setTrackingDistance,
   keepLocation,
   setKeepLocation,
   onButton1,
@@ -32,6 +36,20 @@ const StartingModal: React.FC<StartingModalProps> = ({
   onResetAttractions,
 }) => {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Tracking distance values in meters
+  const trackingDistanceValues = [10, 50, 100, 250, 500, 1000, 2000, 5000, 10000];
+  
+  // Helper function to format distance text
+  const formatTrackingDistance = (distance: number) => {
+    if (distance >= 1000) {
+      return distance / 1000 + ' km';
+    }
+    return distance + ' m';
+  };
+
+  // Get current tracking distance value from array
+  const currentTrackingDistance = trackingDistanceValues[trackingDistance - 1];
 
   if (!visible) return null;
   return (
@@ -107,6 +125,25 @@ const StartingModal: React.FC<StartingModalProps> = ({
                   style={{
                     height: '10px',
                     background: `linear-gradient(to right, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) ${((radiusKm - 1) / 19) * 100}%, #e5e7eb ${((radiusKm - 1) / 19) * 100}%, #e5e7eb 100%)`,
+                    borderRadius: '5px',
+                  }}
+                />
+              </div>
+              {/* Third horizontal slider - Tracking Distance */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-medium text-gray-700 whitespace-nowrap" style={{ minWidth: 110 }}>
+                  Tracking every {formatTrackingDistance(currentTrackingDistance)}
+                </span>
+                <input
+                  type="range"
+                  min="1"
+                  max="9"
+                  value={trackingDistance}
+                  onChange={(e) => setTrackingDistance(parseInt(e.target.value))}
+                  className="appearance-none cursor-pointer custom-slider flex-1"
+                  style={{
+                    height: '10px',
+                    background: `linear-gradient(to right, rgba(59, 130, 246, 0.7) 0%, rgba(59, 130, 246, 0.7) ${((trackingDistance - 1) / 8) * 100}%, #e5e7eb ${((trackingDistance - 1) / 8) * 100}%, #e5e7eb 100%)`,
                     borderRadius: '5px',
                   }}
                 />
