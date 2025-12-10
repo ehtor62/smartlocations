@@ -119,6 +119,8 @@ export default function Page() {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportContent, setReportContent] = useState<string>('');
   const [reportMinimized, setReportMinimized] = useState(false);
+  // Live tracking toggle state
+  const [liveTracking, setLiveTracking] = useState(false);
 
   // Load user's custom attractions when user logs in
   useEffect(() => {
@@ -837,15 +839,39 @@ export default function Page() {
 
       {/* Floating button to reopen side panel when minimized */}
       {sidebarMinimized && panelOpen && (
-        <button
-          onClick={reopenSidePanel}
-          className="absolute top-4 right-4 z-[1002] bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-200"
-          title="Show Results Panel"
-        >
-          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM4 12a1 1 0 100 2h12a1 1 0 100-2H4z" clipRule="evenodd" />
-          </svg>
-        </button>
+        <div className="absolute top-4 right-4 z-[1002] flex gap-2">
+          <button
+            onClick={reopenSidePanel}
+            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-200"
+            title="Show Results Panel"
+          >
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM4 12a1 1 0 100 2h12a1 1 0 100-2H4z" clipRule="evenodd" />
+            </svg>
+          </button>
+          
+          {/* Live Tracking Toggle */}
+          <button
+            onClick={() => setLiveTracking(!liveTracking)}
+            className={`p-2 rounded-full shadow-lg transition-all duration-200 flex flex-col items-center justify-center min-w-[60px] h-[60px] ${
+              liveTracking 
+                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                : 'bg-gray-600 hover:bg-gray-700 text-white'
+            }`}
+            title={liveTracking ? "Live Tracking: ON" : "Live Tracking: OFF"}
+          >
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" className="mb-1">
+              {liveTracking ? (
+                <path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+              ) : (
+                <path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm5 9h-1.26c-.19 1.73-1.73 3.27-3.46 3.46V16h-2v-1.54c-1.73-.19-3.27-1.73-3.46-3.46H4v-2h1.54c.19-1.73 1.73-3.27 3.46-3.46V4h2v1.54c1.73.19 3.27 1.73 3.46 3.46H15v2z"/>
+              )}
+            </svg>
+            <span className="text-xs font-medium leading-none">
+              {liveTracking ? "Live" : "Static"}
+            </span>
+          </button>
+        </div>
       )}
 
       {/* Report Panel */}
