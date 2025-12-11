@@ -580,6 +580,19 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
           }}>
             <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 4 }}>
               <span style={{ marginRight: 8, color: '#3b82f6' }}>{index + 1}.</span>
+              {p.isNewlyAdded && (
+                <span style={{ 
+                  marginRight: 8, 
+                  background: '#10b981', 
+                  color: 'white', 
+                  fontSize: '10px', 
+                  padding: '2px 6px', 
+                  borderRadius: '4px',
+                  fontWeight: 'bold'
+                }}>
+                  NEW
+                </span>
+              )}
               {p.tags?.name || (p.tags?.amenity || p.tags?.tourism || p.tags?.leisure) || 'Unnamed Place'}
               <span 
                 onClick={async () => {

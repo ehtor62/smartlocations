@@ -53,6 +53,7 @@ export interface Place {
   lon: number;
   tags: Record<string, string>;
   distance_m: number;
+  isNewlyAdded?: boolean; // Flag to mark newly discovered places during live tracking
 }
 
 export default function Page() {
@@ -125,6 +126,8 @@ export default function Page() {
   const [lastSearchLocation, setLastSearchLocation] = useState<{lat: number, lon: number} | null>(null);
   // Tracking distance (1-9, maps to [10, 50, 100, 250, 500, 1000, 2000, 5000, 10000] meters)
   const [trackingDistance, setTrackingDistance] = useState(6); // Default to 1000m (index 6)
+  // Track previous search results to identify new places during live tracking
+  const [previousPlaces, setPreviousPlaces] = useState<Place[]>([]);
 
   // Load user's custom attractions when user logs in
   useEffect(() => {
@@ -267,8 +270,31 @@ export default function Page() {
       });
       
       const data = await res.json();
-      setPlaces(data.places || []);
+      const newPlaces = data.places || [];
+      
+      // Identify newly added places by comparing with previous results
+      const newlyAddedPlaces = identifyNewPlaces(newPlaces, previousPlaces);
+      
+      // Store current places as previous for next comparison
+      setPreviousPlaces(places);
+      
+      // Mark newly added places with a flag
+      const placesWithNewFlag = newPlaces.map((place: Place) => ({
+        ...place,
+        isNewlyAdded: newlyAddedPlaces.some(newPlace => 
+          newPlace.id === place.id && newPlace.type === place.type
+        )
+      }));
+      
+      setPlaces(placesWithNewFlag);
       setLastSearchLocation({ lat, lon }); // Update last search location
+      
+      // Log newly found places
+      if (newlyAddedPlaces.length > 0) {
+        console.log(`Live tracking found ${newlyAddedPlaces.length} new places:`, 
+          newlyAddedPlaces.map(p => p.tags.name || 'Unnamed place')
+        );
+      }
       
       // Update location name via reverse geocoding (optional, for better UX)
       try {
@@ -292,6 +318,22 @@ export default function Page() {
       setIsSearching(false);
       setShowGlobeSpinner(false);
     }
+  };
+
+  // Function to identify newly added places
+  const identifyNewPlaces = (newPlaces: Place[], oldPlaces: Place[]): Place[] => {
+    if (oldPlaces.length === 0) {
+      // First search, all places are new
+      return newPlaces;
+    }
+    
+    return newPlaces.filter(newPlace => {
+      // Check if this place existed in previous results
+      return !oldPlaces.some(oldPlace => 
+        oldPlace.id === newPlace.id && 
+        oldPlace.type === newPlace.type
+      );
+    });
   };
 
   const hideReport = () => {
@@ -349,6 +391,8 @@ export default function Page() {
     setReportMinimized(false);
     setLastSearchLocation(null); // Reset live tracking location
     setLiveTracking(false); // Turn off live tracking when panel is closed
+    setPreviousPlaces([]); // Reset previous places tracking
+    setPreviousPlaces([]); // Reset previous places tracking
   };
 
   const resetAttractionsToDefault = () => {

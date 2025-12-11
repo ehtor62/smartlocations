@@ -31,11 +31,13 @@ const redIcon = typeof window !== 'undefined' ? new L.Icon({
 }) : null;
 
 // Function to create numbered marker icons
-const createNumberedIcon = (number: number) => {
+const createNumberedIcon = (number: number, isNewlyAdded: boolean = false) => {
   if (typeof window === 'undefined') return null;
   
+  const markerClass = isNewlyAdded ? 'numbered-marker new-place' : 'numbered-marker';
+  
   return L.divIcon({
-    html: `<div class="numbered-marker">
+    html: `<div class="${markerClass}">
              <div class="marker-number">${number}</div>
            </div>`,
     className: 'numbered-marker-container',
@@ -75,6 +77,14 @@ if (typeof window !== 'undefined') {
       background-image: url('/leaflet/marker-icon.png');
       background-size: contain;
       position: relative;
+    }
+    .numbered-marker.new-place {
+      filter: hue-rotate(90deg) saturate(1.5) brightness(1.1);
+      animation: pulse-new 2s ease-in-out infinite;
+    }
+    @keyframes pulse-new {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
     }
     .marker-number {
       position: absolute;
@@ -268,7 +278,7 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
         <Marker 
           key={`${p.type}-${p.id}`} 
           position={[p.lat, p.lon] as [number, number]}
-          icon={createNumberedIcon(index + 1) || undefined}
+          icon={createNumberedIcon(index + 1, p.isNewlyAdded) || undefined}
         >
           <Popup>
             <div>
