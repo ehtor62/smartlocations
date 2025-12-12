@@ -150,9 +150,9 @@ const StartingModal: React.FC<StartingModalProps> = ({
               </div>
             </div>
             {/* Keep Location label and checkbox */}
-            <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 mt-3 sm:mt-2" style={{ minHeight: '40px' }}>
+            <div className="flex items-center gap-3 sm:gap-4 mt-3 sm:mt-2" style={{ minHeight: '40px' }}>
               {/* Keep Location checkbox */}
-              <div className="flex items-center gap-2 md:w-32 flex-shrink-0">
+              <div className="flex items-center gap-2 w-32">
                 <input
                   id="keep-location-checkbox"
                   type="checkbox"
@@ -165,7 +165,7 @@ const StartingModal: React.FC<StartingModalProps> = ({
                 />
                 <label htmlFor="keep-location-checkbox" className="text-xs sm:text-sm font-medium text-gray-700">Keep Location</label>
               </div>
-              {/* Favorites buttons - stay together on same row */}
+              {/* Favorites buttons - aligned with slider edges */}
               <div className="flex items-center justify-between flex-1">
                 <button
                   type="button"
