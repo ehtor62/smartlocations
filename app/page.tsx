@@ -1035,12 +1035,15 @@ export default function Page() {
         <div className="absolute top-4 right-4 z-[1002] flex gap-2">
           <button
             onClick={reopenSidePanel}
-            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-all duration-200 flex items-center justify-center w-[60px] h-[60px]"
+            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-all duration-200 flex flex-col items-center justify-center min-w-[60px] h-[60px]"
             title="Show Results Panel"
           >
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20" className="mb-1">
               <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 8a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM4 12a1 1 0 100 2h12a1 1 0 100-2H4z" clipRule="evenodd" />
             </svg>
+            <span className="text-xs font-medium leading-none">
+              List
+            </span>
           </button>
           
           {/* Live Tracking Toggle */}
