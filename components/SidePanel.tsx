@@ -87,9 +87,9 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     // Special formatting rules for specific tags
     specialFormatting: {
       'tourism:viewpoint': () => ({ label: '', value: 'viewpoint' }),
-      'tourism:hotel': () => ({ label: '', value: 'hotel' }),
+      'tourism:hotel': () => ({ label: '', value: 'Hotel' }),
       'tourism:museum': () => ({ label: '', value: 'Museum' }),
-      'highway:bus_stop': () => ({ label: '', value: 'bus stop' }),
+      'highway:bus_stop': () => ({ label: '', value: 'Bus stop' }),
       'amenity:car_rental': () => ({ label: '', value: 'Car Rental' }),
       'amenity:restaurant': () => ({ label: '', value: 'Restaurant' }),
       'alt_name': () => ({ label: 'aka:', value: null }),
