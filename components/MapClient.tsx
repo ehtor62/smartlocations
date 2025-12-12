@@ -292,7 +292,13 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
                   const addressOrder = ['addr:postcode', 'addr:city', 'addr:street', 'addr:housenumber'];
                   
                   // Filter out redundant tags
-                  const filteredTags = tags.filter(([k]) => k !== 'name' && k !== 'wheelchair' && !k.startsWith('ref:'));
+                  const filteredTags = tags.filter(([k]) => {
+                    // Exclude basic unwanted tags
+                    if (k === 'name' || k === 'wheelchair' || k.startsWith('ref:')) return false;
+                    // Exclude language-specific name tags (e.g., name:en:, name:fr:)
+                    if (/^name:[a-z]{2}:/.test(k)) return false;
+                    return true;
+                  });
                   
                   // Sort tags: address tags in specified order first, then other tags
                   const addressTags = addressOrder
