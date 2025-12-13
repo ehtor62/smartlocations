@@ -173,6 +173,9 @@ export default function Page() {
           const currentLat = position.coords.latitude;
           const currentLon = position.coords.longitude;
           
+          // Always update the red marker position to current location
+          setCenter({ lat: currentLat, lon: currentLon });
+          
           // Check if we have a last search location and if user moved significantly
           if (lastSearchLocation) {
             const distance = haversineDistance(
@@ -185,9 +188,6 @@ export default function Page() {
             // If user moved more than the configured tracking distance, trigger new search
             if (distance > currentTrackingDistanceM) {
               console.log(`User moved ${Math.round(distance)}m (threshold: ${currentTrackingDistanceM}m) - triggering new search`);
-              
-              // Update center to new location
-              setCenter({ lat: currentLat, lon: currentLon });
               
               // Only auto-search if we have an active search (panel is open)
               if (panelOpen && !isSearching) {
