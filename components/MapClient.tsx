@@ -79,7 +79,7 @@ if (typeof window !== 'undefined') {
       position: relative;
     }
     .numbered-marker.new-place {
-      filter: hue-rotate(120deg) saturate(2) brightness(1.2);
+      filter: hue-rotate(-120deg) saturate(2) brightness(1.2);
       animation: pulse-new 2s ease-in-out infinite;
     }
     @keyframes pulse-new {
