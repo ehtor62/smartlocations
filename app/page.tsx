@@ -536,12 +536,11 @@ export default function Page() {
 
   const showCategoryDetails = (categoryName: string) => {
     setSelectedCategoryForDetails(categoryName);
-    // Initialize all tags as selected for this category if not already set
+    // Initialize all tags as deselected for this category if not already set
     if (!selectedTagsInCategory[categoryName]) {
-      const allTags = tagGroups[categoryName as keyof typeof tagGroups] || [];
       setSelectedTagsInCategory(prev => ({
         ...prev,
-        [categoryName]: [...allTags]
+        [categoryName]: []
       }));
     }
     setCategoryDetailsVisible(true);

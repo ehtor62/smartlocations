@@ -49,14 +49,8 @@ const CategoryDetailsModal: React.FC<CategoryDetailsModalProps> = ({
           <p className="text-sm text-gray-600 mb-4">
             This category includes the following options:
           </p>
-          <div className="flex justify-between items-center mb-2">
+          <div className="mb-2">
             <span className="text-sm font-medium text-gray-700">Click options to select/de-select:</span>
-            <button
-              onClick={() => onDeselectAll(categoryName)}
-              className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded border border-red-300 transition-colors"
-            >
-              De-select All
-            </button>
           </div>
           <div className="max-h-60 overflow-y-auto bg-gray-50 p-3 rounded border">
             {tags
