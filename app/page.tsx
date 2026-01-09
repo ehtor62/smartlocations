@@ -1001,6 +1001,39 @@ export default function Page() {
       return;
     }
 
+    // If searchMode is 'address' and we have center coordinates
+    if (searchMode === 'address' && center) {
+      setShowGlobeSpinner(true);
+      try {
+        const res = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            lat: center.lat, 
+            lon: center.lon, 
+            keyword: keywordSearch.trim(),
+            limit: numberOfPlaces, 
+            radiusKm 
+          }),
+          signal: AbortSignal.timeout(60000)
+        });
+        const data = await res.json();
+        setPlaces(data.places || []);
+        setSelectedCategories([`"${keywordSearch.trim()}"`]); // Display search term
+        setLastSearchLocation({ lat: center.lat, lon: center.lon });
+        setPanelOpen(true);
+        setShowGlobeSpinner(false);
+      } catch (err) {
+        setShowGlobeSpinner(false);
+        console.error(err);
+        alert('Keyword search failed. Please try again.');
+      } finally {
+        setLoading(false);
+        setIsSearching(false);
+      }
+      return;
+    }
+
     // Otherwise use current location
     if (searchMode === 'current') {
       if (!('geolocation' in navigator)) {
