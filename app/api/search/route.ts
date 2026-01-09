@@ -97,7 +97,7 @@ export async function POST(req: Request) {
         const nominatimResults = await nominatimResp.json();
         
         // Convert Nominatim results to our format
-        const places = nominatimResults.map((result: any, index: number) => ({
+        const places: SearchResult['places'] = nominatimResults.map((result: any, index: number) => ({
           id: parseInt(result.osm_id) || index,
           type: result.osm_type || 'node',
           lat: parseFloat(result.lat),
@@ -138,6 +138,9 @@ export async function POST(req: Request) {
         ${tagFilters}
       );
       out center;`;
+    } else {
+      // No keyword and no tags provided
+      return NextResponse.json({ places: [] });
     }
 
     // List of Overpass API endpoints for fallback (reordered by typical response time)
