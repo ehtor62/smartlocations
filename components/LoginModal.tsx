@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { signInWithGoogle } from '../utils/firebase-auth';
 
 interface LoginModalProps {
@@ -13,16 +13,27 @@ interface LoginModalProps {
 const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, loading = false, error }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // Clear form fields and errors when modal becomes visible
+  useEffect(() => {
+    if (visible) {
+      setEmail('');
+      setPassword('');
+      setLoginError('');
+    }
+  }, [visible]);
 
   if (!visible) return null;
 
   const handleGoogleLogin = async () => {
+    setLoginError('');
     try {
       await signInWithGoogle();
       onClose(); // Close modal on success
-    } catch {
-      alert('Google login failed.');
-      // Optionally, set error state here
+    } catch (error: any) {
+      console.error("Login error caught:", error);
+      setLoginError(error?.message || 'Google login failed.');
     }
   };
 
@@ -33,6 +44,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
         <form
           onSubmit={e => {
             e.preventDefault();
+            setLoginError('');
             onLogin(email, password);
           }}
           className="flex flex-col gap-3"
@@ -54,7 +66,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose, onLogin, load
             onChange={e => setPassword(e.target.value)}
             required
           />
-          {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+          {(error || loginError) && <div className="text-red-600 text-sm text-center">{error || loginError}</div>}
           <button
             type="submit"
             className="bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
