@@ -14,6 +14,9 @@ interface CategoryModalProps {
   editAttractionsMode?: boolean;
   categoriesAddedToAttractions?: string[];
   handleReturnToMainFromEdit?: () => void;
+  keywordSearch?: string;
+  onKeywordSearchChange?: (value: string) => void;
+  handleKeywordSearch?: () => void;
 }
 
 const CategoryModal: React.FC<CategoryModalProps> = ({
@@ -30,6 +33,9 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
   editAttractionsMode,
   categoriesAddedToAttractions = [],
   handleReturnToMainFromEdit,
+  keywordSearch,
+  onKeywordSearchChange,
+  handleKeywordSearch,
 }) => {
   if (!visible) return null;
   return (
@@ -46,26 +52,56 @@ const CategoryModal: React.FC<CategoryModalProps> = ({
             ✕
           </button>
         </div>
-        {/* Search Button */}
-        <div className="mb-4 sm:mb-6 text-center">
-          <button
-            onClick={editAttractionsMode && categoriesAddedToAttractions.length > 0 ? handleReturnToMainFromEdit : handleMultiCategorySearch}
-            disabled={(editAttractionsMode && categoriesAddedToAttractions.length === 0) || (!editAttractionsMode && selectedCategories.length === 0) || loading}
-            className={`px-4 py-2 sm:px-8 sm:py-3 rounded-lg font-bold text-sm sm:text-lg transition-all duration-200 ${
-              ((editAttractionsMode && categoriesAddedToAttractions.length === 0) || (!editAttractionsMode && selectedCategories.length === 0))
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-green-500 to-blue-600 text-white hover:from-green-600 hover:to-blue-700 shadow-lg'
-            }`}
-          >
-            {loading
-              ? (editAttractionsMode ? 'Adding...' : 'Searching...')
-              : (editAttractionsMode
-                  ? (categoriesAddedToAttractions.length > 0 
-                      ? `Added ${categoriesAddedToAttractions.length} Categories`
-                      : `Add ${selectedCategories.length} Categories`)
-                  : `Find ${selectedCategories.length} Categories`)
-            }
-          </button>
+        {/* Search Button and Keyword Search */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-stretch sm:items-center">
+            <button
+              onClick={editAttractionsMode && categoriesAddedToAttractions.length > 0 ? handleReturnToMainFromEdit : handleMultiCategorySearch}
+              disabled={(editAttractionsMode && categoriesAddedToAttractions.length === 0) || (!editAttractionsMode && selectedCategories.length === 0) || loading}
+              className={`px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-bold text-sm sm:text-base transition-all duration-200 ${
+                ((editAttractionsMode && categoriesAddedToAttractions.length === 0) || (!editAttractionsMode && selectedCategories.length === 0))
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-green-500 to-blue-600 text-white hover:from-green-600 hover:to-blue-700 shadow-lg'
+              }`}
+            >
+              {loading
+                ? (editAttractionsMode ? 'Adding...' : 'Searching...')
+                : (editAttractionsMode
+                    ? (categoriesAddedToAttractions.length > 0 
+                        ? `Added ${categoriesAddedToAttractions.length} Categories`
+                        : `Add ${selectedCategories.length} Categories`)
+                    : `Find ${selectedCategories.length} Categories`)
+              }
+            </button>
+            {!editAttractionsMode && onKeywordSearchChange && handleKeywordSearch && (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={keywordSearch || ''}
+                  onChange={(e) => onKeywordSearchChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && keywordSearch && keywordSearch.trim()) {
+                      handleKeywordSearch();
+                    }
+                  }}
+                  placeholder="Search by keyword..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+                <button
+                  onClick={handleKeywordSearch}
+                  disabled={!keywordSearch || !keywordSearch.trim() || loading}
+                  className={`px-4 py-2 sm:px-6 sm:py-3 rounded-lg font-bold text-sm sm:text-base whitespace-nowrap transition-all duration-200 ${
+                    !keywordSearch || !keywordSearch.trim()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 shadow-lg'
+                  }`}
+                >
+                  🔍 Search
+                </button>
+              </div>
+            )}
+          </div>
           {((editAttractionsMode && categoriesAddedToAttractions.length > 0) || (!editAttractionsMode && selectedCategories.length > 0)) && (
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
               {editAttractionsMode && categoriesAddedToAttractions.length > 0

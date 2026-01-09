@@ -75,6 +75,7 @@ export default function Page() {
     setEditAttractionsMode(true);
     setCategoryModalVisible(true);
     setModalVisible(false);
+    setKeywordSearch(''); // Clear keyword search
     
     // Also open the Favorites details modal
     setSelectedCategoryForDetails('Favorites');
@@ -128,6 +129,8 @@ export default function Page() {
   const [trackingDistance, setTrackingDistance] = useState(6); // Default to 1000m (index 6)
   // Track previous search results to identify new places during live tracking
   const [previousPlaces, setPreviousPlaces] = useState<Place[]>([]);
+  // Keyword search state
+  const [keywordSearch, setKeywordSearch] = useState('');
 
   // Load user's custom attractions when user logs in
   useEffect(() => {
@@ -299,7 +302,7 @@ export default function Page() {
       // Update location name via reverse geocoding (optional, for better UX)
       try {
         const geocodeResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+          `/api/reverse-geocode?lat=${lat}&lon=${lon}`
         );
         if (geocodeResponse.ok) {
           const geocodeData = await geocodeResponse.json();
@@ -452,7 +455,7 @@ export default function Page() {
       // Reverse geocode to get the address of current location
       try {
         const geocodeResponse = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+          `/api/reverse-geocode?lat=${lat}&lon=${lon}`
         );
         if (geocodeResponse.ok) {
           const geocodeData = await geocodeResponse.json();
@@ -514,6 +517,7 @@ export default function Page() {
       setAddressModalVisible(false);
       setCategoryModalVisible(true);
       setSearchMode('address');
+      setKeywordSearch(''); // Clear keyword search
     } else {
       setModalVisible(false);
       setAddressModalVisible(true);
@@ -531,6 +535,7 @@ export default function Page() {
     // Open category modal and set to search at address location
     setSelectedCategories([]); // Reset category selections
     setSearchMode('address'); // Set to search at address location
+    setKeywordSearch(''); // Clear keyword search
     setCategoryModalVisible(true);
   };
 
@@ -679,6 +684,7 @@ export default function Page() {
     setModalVisible(false);
     setSelectedCategories([]); // Reset selections when opening modal
     setSearchMode('current'); // Set to search at current location
+    setKeywordSearch(''); // Clear keyword search
     setCategoryModalVisible(true);
   };
 
@@ -829,7 +835,7 @@ export default function Page() {
         // Reverse geocode to get the address of current location
         try {
           const geocodeResponse = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`
+            `/api/reverse-geocode?lat=${lat}&lon=${lon}`
           );
           if (geocodeResponse.ok) {
             const geocodeData = await geocodeResponse.json();
@@ -939,6 +945,128 @@ export default function Page() {
     }
   };
 
+  // Handle keyword search
+  const handleKeywordSearch = async () => {
+    if (!keywordSearch || !keywordSearch.trim()) {
+      alert('Please enter a search keyword');
+      return;
+    }
+    if (isSearching) {
+      alert('A search is already in progress. Please wait.');
+      return;
+    }
+    
+    setLoading(true);
+    setIsSearching(true);
+    setIsFavoritesSearch(false);
+    setCategoryModalVisible(false);
+
+    // If keepLocation is active and keptAddress is set, use its coordinates
+    if (keepLocation && keptAddress.trim() !== '') {
+      try {
+        const response = await fetch(`/api/address-search?q=${encodeURIComponent(keptAddress)}`);
+        if (!response.ok) throw new Error('Failed to geocode address');
+        const data = await response.json();
+        if (!data || !Array.isArray(data) || data.length === 0) throw new Error('No results for address');
+        const { lat, lon } = data[0];
+
+        setCenter({ lat: parseFloat(lat), lon: parseFloat(lon) });
+        setShowGlobeSpinner(true);
+
+        const res = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            lat: parseFloat(lat), 
+            lon: parseFloat(lon), 
+            keyword: keywordSearch.trim(),
+            limit: numberOfPlaces, 
+            radiusKm 
+          }),
+          signal: AbortSignal.timeout(60000)
+        });
+        const searchData = await res.json();
+        setPlaces(searchData.places || []);
+        setSelectedCategories([`"${keywordSearch.trim()}"`]); // Display search term
+        setPanelOpen(true);
+        setShowGlobeSpinner(false);
+      } catch (err) {
+        setShowGlobeSpinner(false);
+        console.error(err);
+        alert('Keyword search failed. Please try again.');
+      } finally {
+        setLoading(false);
+        setIsSearching(false);
+      }
+      return;
+    }
+
+    // Otherwise use current location
+    if (searchMode === 'current') {
+      if (!('geolocation' in navigator)) {
+        alert('Geolocation not available');
+        setLoading(false);
+        setIsSearching(false);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        setCenter({ lat, lon });
+        setShowGlobeSpinner(true);
+
+        // Reverse geocode
+        try {
+          const geocodeResponse = await fetch(
+            `/api/reverse-geocode?lat=${lat}&lon=${lon}`
+          );
+          if (geocodeResponse.ok) {
+            const geocodeData = await geocodeResponse.json();
+            if (geocodeData.display_name) {
+              setSelectedLocationName(geocodeData.display_name);
+            }
+          }
+        } catch (error) {
+          console.error('Reverse geocoding failed:', error);
+        }
+
+        try {
+          const res = await fetch('/api/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              lat, 
+              lon, 
+              keyword: keywordSearch.trim(),
+              limit: numberOfPlaces, 
+              radiusKm 
+            }),
+            signal: AbortSignal.timeout(60000)
+          });
+          const data = await res.json();
+          setPlaces(data.places || []);
+          setSelectedCategories([`"${keywordSearch.trim()}"`]); // Display search term
+          setLastSearchLocation({ lat, lon });
+          setPanelOpen(true);
+          setShowGlobeSpinner(false);
+        } catch (err) {
+          setShowGlobeSpinner(false);
+          console.error(err);
+          alert('Keyword search failed. Please try again.');
+        } finally {
+          setLoading(false);
+          setIsSearching(false);
+        }
+      }, (err) => {
+        console.error(err);
+        alert('Failed to get your location');
+        setLoading(false);
+        setIsSearching(false);
+      });
+    }
+  };
+
   return (
     <div className="h-screen w-full overflow-hidden relative">
       <MapClient center={center} places={places} showCurrentLocation={true} />
@@ -998,6 +1126,9 @@ export default function Page() {
         editAttractionsMode={editAttractionsMode}
         categoriesAddedToAttractions={categoriesAddedToAttractions}
         handleReturnToMainFromEdit={handleReturnToMainFromEdit}
+        keywordSearch={keywordSearch}
+        onKeywordSearchChange={setKeywordSearch}
+        handleKeywordSearch={handleKeywordSearch}
       />
 
       {/* Address Search Modal */}

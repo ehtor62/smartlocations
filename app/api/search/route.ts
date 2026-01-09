@@ -48,32 +48,97 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export async function POST(req: Request) {
   try {
   const body = await req.json();
-  const { lat, lon, tags, limit = 20, radiusKm = 5 } = body as { lat: number; lon: number; tags: string[]; limit?: number; radiusKm?: number };
+  const { lat, lon, tags, keyword, limit = 20, radiusKm = 5 } = body as { lat: number; lon: number; tags?: string[]; keyword?: string; limit?: number; radiusKm?: number };
     if (typeof lat !== 'number' || typeof lon !== 'number') {
       return NextResponse.json({ error: 'lat and lon required' }, { status: 400 });
     }
 
     // Check cache first (now includes radiusKm and limit)
-    const cachedResult = overpassCache.get(lat, lon, tags, radiusKm, limit);
+    const cacheKey = keyword ? `keyword:${keyword}` : (tags || []).join(',');
+    const cachedResult = overpassCache.get(lat, lon, keyword ? [cacheKey] : (tags || []), radiusKm, limit);
     if (cachedResult) {
       console.log('Returning cached result');
       return NextResponse.json(cachedResult as SearchResult);
     }
 
-    // Build Overpass QL: search for nodes/ways/relations with the provided tags within radius
-    // tags are expected as strings like "amenity=library" or "tourism=museum"
+    // Build Overpass QL
     const radiusMeters = getSearchRadiusMeters(radiusKm);
-    const tagFilters = (tags || []).map((t: string) => {
-      const [k, v] = t.split('=');
-      return `node["${k}"="${v}"](around:${radiusMeters},${lat},${lon});way["${k}"="${v}"](around:${radiusMeters},${lat},${lon});relation["${k}"="${v}"](around:${radiusMeters},${lat},${lon});`;
-    }).join('\n');
+    
+    let query: string;
+    
+    if (keyword) {
+      // Keyword search: Use Nominatim instead of Overpass for text search (much faster)
+      const searchTerm = keyword.trim();
+      
+      console.log('Keyword search using Nominatim for:', searchTerm);
+      
+      try {
+        // Use Nominatim search API to find places by keyword
+        const nominatimResp = await fetch(
+          `https://nominatim.openstreetmap.org/search?` +
+          `q=${encodeURIComponent(searchTerm)}&` +
+          `lat=${lat}&lon=${lon}&` +
+          `format=json&` +
+          `limit=${limit}&` +
+          `bounded=1&` +
+          `viewbox=${lon - (radiusKm * 0.015)},${lat + (radiusKm * 0.015)},${lon + (radiusKm * 0.015)},${lat - (radiusKm * 0.015)}&` +
+          `addressdetails=0&` +
+          `extratags=1`,
+          {
+            headers: { 'User-Agent': 'SmartLocations/1.0' },
+            signal: AbortSignal.timeout(10000)
+          }
+        );
+        
+        if (!nominatimResp.ok) {
+          throw new Error(`Nominatim returned ${nominatimResp.status}`);
+        }
+        
+        const nominatimResults = await nominatimResp.json();
+        
+        // Convert Nominatim results to our format
+        const places = nominatimResults.map((result: any, index: number) => ({
+          id: parseInt(result.osm_id) || index,
+          type: result.osm_type || 'node',
+          lat: parseFloat(result.lat),
+          lon: parseFloat(result.lon),
+          tags: {
+            name: result.display_name || searchTerm,
+            ...result.extratags
+          },
+          distance_m: Math.round(haversineDistance(lat, lon, parseFloat(result.lat), parseFloat(result.lon)))
+        }));
+        
+        // Sort by distance
+        places.sort((a, b) => a.distance_m - b.distance_m);
+        
+        const result = { places: places.slice(0, limit) };
+        
+        // Cache the result
+        const cacheKeyForStorage = `keyword:${keyword}`;
+        overpassCache.set(lat, lon, [cacheKeyForStorage], radiusKm, limit, result);
+        
+        return NextResponse.json(result);
+        
+      } catch (nominatimError) {
+        console.error('Nominatim search failed:', nominatimError);
+        // Fall back to empty results
+        return NextResponse.json({ places: [] });
+      }
+    } else if (tags && tags.length > 0) {
+      // Tag-based search (existing Overpass logic)
+      const tagFilters = (tags || []).map((t: string) => {
+        const [k, v] = t.split('=');
+        return `node["${k}"="${v}"](around:${radiusMeters},${lat},${lon});way["${k}"="${v}"](around:${radiusMeters},${lat},${lon});relation["${k}"="${v}"](around:${radiusMeters},${lat},${lon});`;
+      }).join('\n');
 
-    const query = `
+      query = `
       [out:json][timeout:45];
       (
         ${tagFilters}
       );
       out center;`;
+    }
 
     // List of Overpass API endpoints for fallback (reordered by typical response time)
     const overpassEndpoints = [
@@ -151,7 +216,8 @@ export async function POST(req: Request) {
         const result = { places: chosen };
         
   // Cache the successful result (now includes radiusKm and limit)
-  overpassCache.set(lat, lon, tags, radiusKm, limit, result);
+  const cacheKeyForStorage = keyword ? `keyword:${keyword}` : (tags || []).join(',');
+  overpassCache.set(lat, lon, keyword ? [cacheKeyForStorage] : (tags || []), radiusKm, limit, result);
         
         return NextResponse.json(result);
         
