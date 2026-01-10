@@ -82,7 +82,7 @@ export async function POST(req: Request) {
           `limit=${limit}&` +
           `bounded=1&` +
           `viewbox=${lon - (radiusKm * 0.015)},${lat + (radiusKm * 0.015)},${lon + (radiusKm * 0.015)},${lat - (radiusKm * 0.015)}&` +
-          `addressdetails=0&` +
+          `addressdetails=1&` +
           `extratags=1`,
           {
             headers: { 'User-Agent': 'SmartLocations/1.0' },
@@ -97,17 +97,73 @@ export async function POST(req: Request) {
         const nominatimResults = await nominatimResp.json();
         
         // Convert Nominatim results to our format
-        const places: SearchResult['places'] = nominatimResults.map((result: any, index: number) => ({
-          id: parseInt(result.osm_id) || index,
-          type: result.osm_type || 'node',
-          lat: parseFloat(result.lat),
-          lon: parseFloat(result.lon),
-          tags: {
-            name: result.display_name || searchTerm,
+        const places: SearchResult['places'] = nominatimResults.map((result: any, index: number) => {
+          // Extract place name from display_name (first part before comma)
+          const displayName = result.display_name || searchTerm;
+          const placeName = displayName.split(',')[0].trim();
+          
+          // Build tags object with structured address
+          const tags: Record<string, string> = {
+            name: placeName,
             ...result.extratags
-          },
-          distance_m: Math.round(haversineDistance(lat, lon, parseFloat(result.lat), parseFloat(result.lon)))
-        }));
+          };
+          
+          // Map Nominatim address to OSM addr:* format
+          if (result.address) {
+            const addr = result.address;
+            
+            // Map house number
+            if (addr.house_number) {
+              tags['addr:housenumber'] = addr.house_number;
+            }
+            
+            // Map street (try road first, then other street types)
+            if (addr.road) {
+              tags['addr:street'] = addr.road;
+            } else if (addr.pedestrian) {
+              tags['addr:street'] = addr.pedestrian;
+            } else if (addr.footway) {
+              tags['addr:street'] = addr.footway;
+            } else if (addr.path) {
+              tags['addr:street'] = addr.path;
+            }
+            
+            // Map city (try city first, then town, village, etc.)
+            if (addr.city) {
+              tags['addr:city'] = addr.city;
+            } else if (addr.town) {
+              tags['addr:city'] = addr.town;
+            } else if (addr.village) {
+              tags['addr:city'] = addr.village;
+            } else if (addr.municipality) {
+              tags['addr:city'] = addr.municipality;
+            }
+            
+            // Map postcode
+            if (addr.postcode) {
+              tags['addr:postcode'] = addr.postcode;
+            }
+            
+            // Map country
+            if (addr.country) {
+              tags['addr:country'] = addr.country;
+            }
+            
+            // Map state/region
+            if (addr.state) {
+              tags['addr:state'] = addr.state;
+            }
+          }
+          
+          return {
+            id: parseInt(result.osm_id) || index,
+            type: result.osm_type || 'node',
+            lat: parseFloat(result.lat),
+            lon: parseFloat(result.lon),
+            tags,
+            distance_m: Math.round(haversineDistance(lat, lon, parseFloat(result.lat), parseFloat(result.lon)))
+          };
+        });
         
         // Sort by distance
         places.sort((a, b) => a.distance_m - b.distance_m);
