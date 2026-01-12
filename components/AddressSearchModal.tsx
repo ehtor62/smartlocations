@@ -51,12 +51,12 @@ export default function AddressSearchModal({
     }
   }, [keepLocation, keptAddress, visible]);
   
-  // When returning from map-click mode, populate with the selected address
+  // When returning from map-click mode, populate with the selected address only if keepLocation is active
   React.useEffect(() => {
-    if (!mapClickMode && keptAddress && visible) {
+    if (!mapClickMode && keptAddress && visible && keepLocation) {
       setAddressInputState(keptAddress);
     }
-  }, [mapClickMode, keptAddress, visible]);
+  }, [mapClickMode, keptAddress, visible, keepLocation]);
 
   // Cleanup on unmount
   React.useEffect(() => {

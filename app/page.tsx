@@ -590,8 +590,12 @@ export default function Page() {
       setAddressModalVisible(false);
       setModalVisible(false);
       
-      // Clear the address input field
-      setKeptAddress('');
+      // If keepLocation is active, keep the address; otherwise clear it
+      if (keepLocation) {
+        setKeptAddress(mapClickedLocation.displayName);
+      } else {
+        setKeptAddress('');
+      }
       
       // Open category modal and set to search at address location
       setSelectedCategories([]); // Reset category selections
