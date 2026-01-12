@@ -131,6 +131,11 @@ export default function Page() {
   const [previousPlaces, setPreviousPlaces] = useState<Place[]>([]);
   // Keyword search state
   const [keywordSearch, setKeywordSearch] = useState('');
+  // Map-click mode for selecting location from map
+  const [mapClickMode, setMapClickMode] = useState(false);
+  // Map-click confirmation popup state
+  const [mapClickConfirmVisible, setMapClickConfirmVisible] = useState(false);
+  const [mapClickedLocation, setMapClickedLocation] = useState<{ lat: number; lon: number; displayName: string } | null>(null);
 
   // Load user's custom attractions when user logs in
   useEffect(() => {
@@ -537,6 +542,72 @@ export default function Page() {
     setSearchMode('address'); // Set to search at address location
     setKeywordSearch(''); // Clear keyword search
     setCategoryModalVisible(true);
+  };
+  
+  const handleMapClick = async (lat: number, lon: number) => {
+    // Disable map click mode
+    setMapClickMode(false);
+    
+    // Hide the address modal
+    setAddressModalVisible(false);
+    
+    // Update map center to clicked location
+    setCenter({ lat, lon });
+    
+    // Perform reverse geocoding to get address name
+    try {
+      const response = await fetch(`/api/reverse-geocode?lat=${lat}&lon=${lon}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const displayName = data.display_name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        
+        // Show confirmation popup with the location
+        setMapClickedLocation({ lat, lon, displayName });
+        setMapClickConfirmVisible(true);
+      } else {
+        // If reverse geocoding fails, still use the coordinates
+        const coordsDisplay = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        setMapClickedLocation({ lat, lon, displayName: coordsDisplay });
+        setMapClickConfirmVisible(true);
+      }
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      // Fallback to coordinates
+      const coordsDisplay = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+      setMapClickedLocation({ lat, lon, displayName: coordsDisplay });
+      setMapClickConfirmVisible(true);
+    }
+  };
+  
+  const handleMapClickConfirm = () => {
+    if (mapClickedLocation) {
+      // Set the location details
+      setSelectedLocationName(mapClickedLocation.displayName);
+      
+      // Close all modals and open category modal
+      setMapClickConfirmVisible(false);
+      setAddressModalVisible(false);
+      setModalVisible(false);
+      
+      // Clear the address input field
+      setKeptAddress('');
+      
+      // Open category modal and set to search at address location
+      setSelectedCategories([]); // Reset category selections
+      setSearchMode('address'); // Set to search at address location
+      setKeywordSearch(''); // Clear keyword search
+      setCategoryModalVisible(true);
+    }
+  };
+  
+  const handleMapClickCancel = () => {
+    // Close confirmation popup and go back to starting modal
+    setMapClickConfirmVisible(false);
+    setAddressModalVisible(false);
+    setModalVisible(true);
+    setMapClickMode(false);
+    setMapClickedLocation(null);
   };
 
   const showCategoryDetails = (categoryName: string) => {
@@ -1102,7 +1173,13 @@ export default function Page() {
 
   return (
     <div className="h-screen w-full overflow-hidden relative">
-      <MapClient center={center} places={places} showCurrentLocation={true} />
+      <MapClient 
+        center={center} 
+        places={places} 
+        showCurrentLocation={true} 
+        mapClickMode={mapClickMode}
+        onMapClick={handleMapClick}
+      />
 
       {/* Globe Spinner Overlay */}
       {showGlobeSpinner && (
@@ -1170,6 +1247,7 @@ export default function Page() {
         onClose={() => {
           setAddressModalVisible(false);
           setModalVisible(true);
+          setMapClickMode(false);
         }}
         onAddressSelect={handleAddressSelect}
         loading={loading}
@@ -1177,7 +1255,39 @@ export default function Page() {
         setKeepLocation={setKeepLocation}
         keptAddress={keptAddress}
         setKeptAddress={setKeptAddress}
+        mapClickMode={mapClickMode}
+        setMapClickMode={setMapClickMode}
       />
+
+      {/* Map Click Confirmation Modal */}
+      {mapClickConfirmVisible && mapClickedLocation && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[1001] p-4 max-w-sm w-full">
+          <div className="bg-white/95 backdrop-blur-sm p-4 rounded-lg shadow-xl">
+            <div className="text-center mb-3">
+              <p className="text-gray-900 font-medium text-sm px-3 py-2 bg-blue-50 rounded-lg break-words">
+                {mapClickedLocation.displayName}
+              </p>
+              <p className="text-gray-500 text-xs mt-1">
+                {mapClickedLocation.lat.toFixed(6)}, {mapClickedLocation.lon.toFixed(6)}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleMapClickCancel}
+                className="flex-1 px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleMapClickConfirm}
+                className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CategoryDetailsModal
         visible={categoryDetailsVisible}

@@ -5,7 +5,7 @@ import { useFirebaseUser } from './LoginModalOnLoadWrapper';
 import { getAuth, signOut } from 'firebase/auth';
 import app from '../utils/firebase';
 import Image from 'next/image';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Tooltip, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Tooltip, ZoomControl, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
 // Basic Leaflet icon fix for Next.js
@@ -153,9 +153,24 @@ function AutoZoomToCircle({ center, radius, showCircle }: { center: { lat: numbe
   return null;
 }
 
+function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lon: number) => void }) {
+  useMapEvents({
+    click: (e) => {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 import type { Place } from '../app/page';
 
-export default function MapClient({ center, places, showCurrentLocation }: { center: { lat: number; lon: number }, places: Place[], showCurrentLocation: boolean }) {
+export default function MapClient({ center, places, showCurrentLocation, mapClickMode, onMapClick }: { 
+  center: { lat: number; lon: number }, 
+  places: Place[], 
+  showCurrentLocation: boolean,
+  mapClickMode?: boolean,
+  onMapClick?: (lat: number, lon: number) => void 
+}) {
   const user = useFirebaseUser();
   const [showLogout, setShowLogout] = useState(false);
   // Calculate the maximum distance for the circle radius
@@ -238,6 +253,9 @@ export default function MapClient({ center, places, showCurrentLocation }: { cen
       />
       <Recenter center={center} />
       <AutoZoomToCircle center={center} radius={maxDistance} showCircle={showCurrentLocation && maxDistance > 0} />
+      
+      {/* Map click handler for location selection */}
+      {mapClickMode && onMapClick && <MapClickHandler onMapClick={onMapClick} />}
 
       {/* Circle showing search radius to the most distant marker */}
       {showCurrentLocation && maxDistance > 0 && (

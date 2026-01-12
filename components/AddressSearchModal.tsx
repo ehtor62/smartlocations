@@ -20,6 +20,8 @@ interface AddressSearchModalProps {
   setKeepLocation: (checked: boolean) => void;
   keptAddress: string;
   setKeptAddress: (value: string) => void;
+  mapClickMode: boolean;
+  setMapClickMode: (enabled: boolean) => void;
 }
 
 export default function AddressSearchModal({ 
@@ -30,7 +32,9 @@ export default function AddressSearchModal({
   keepLocation,
   setKeepLocation,
   keptAddress,
-  setKeptAddress
+  setKeptAddress,
+  mapClickMode,
+  setMapClickMode
 }: AddressSearchModalProps) {
   const [addressInput, setAddressInputState] = useState('');
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
@@ -46,6 +50,13 @@ export default function AddressSearchModal({
       setAddressInputState('');
     }
   }, [keepLocation, keptAddress, visible]);
+  
+  // When returning from map-click mode, populate with the selected address
+  React.useEffect(() => {
+    if (!mapClickMode && keptAddress && visible) {
+      setAddressInputState(keptAddress);
+    }
+  }, [mapClickMode, keptAddress, visible]);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -138,8 +149,14 @@ export default function AddressSearchModal({
 
   if (!visible) return null;
 
+  // When in map-click mode, return null to hide everything
+  if (mapClickMode) {
+    return null;
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
+      {/* Main modal */}
       <div 
         className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" 
         style={{ 
@@ -174,6 +191,18 @@ export default function AddressSearchModal({
               Searching...
             </div>
           )}
+          
+          {/* Map click mode button */}
+          <div className="mt-3 mb-2">
+            <button
+              onClick={() => setMapClickMode(true)}
+              className="w-full px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+            >
+              <span className="text-xl">📍</span>
+              <span>Or Click on Map to Select Location</span>
+            </button>
+          </div>
+          
           <div className="flex items-center gap-2 mt-2">
             <label htmlFor="keep-location-constant-checkbox" className="text-xs font-medium text-gray-700">Keep the location constant</label>
             <input
