@@ -21,6 +21,21 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
   const [geminiResponse, setGeminiResponse] = useState('');
   const [geminiLoading, setGeminiLoading] = useState(false);
   const [geminiMinimized, setGeminiMinimized] = useState(false);
+  
+  // Track which place cards are expanded
+  const [expandedPlaces, setExpandedPlaces] = useState<Set<string>>(new Set());
+  
+  const togglePlaceExpansion = (placeKey: string) => {
+    setExpandedPlaces(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(placeKey)) {
+        newSet.delete(placeKey);
+      } else {
+        newSet.add(placeKey);
+      }
+      return newSet;
+    });
+  };
 
   // Define tag filtering configuration
   const tagConfig = {
@@ -588,14 +603,29 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
           )}
 
           <ul style={{ marginTop: 0, padding: 0, listStyle: 'none' }}>
-            {places.map((p, index) => (
-              <li key={`${p.type}-${p.id}`} style={{
+            {places.map((p, index) => {
+              const placeKey = `${p.type}-${p.id}`;
+              const isExpanded = expandedPlaces.has(placeKey);
+              
+              // Check if there are additional details to show
+              const priorityTags = new Set(['name', 'tourism', 'amenity', 'leisure', 'shop', 'craft', 
+                'cuisine', 'opening_hours', 'phone', 'website', 'addr:postcode', 'addr:city', 
+                'addr:street', 'addr:housenumber']);
+              
+              const hasAdditionalDetails = p.tags && Object.entries(p.tags).some(([k]) => 
+                !priorityTags.has(k) && !shouldExcludeTag(k)
+              );
+              
+              return (
+              <li key={placeKey} style={{
                 padding: 12,
                 borderBottom: '1px solid #e5e7eb',
                 background: index % 2 === 0 ? '#f9fafb' : 'white',
                 marginBottom: 4,
-                borderRadius: 6
+                borderRadius: 6,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}>
+                {/* Header Section - Always Visible */}
                 <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 4 }}>
                   <span style={{ marginRight: 8, color: '#3b82f6' }}>{index + 1}.</span>
                   {p.isNewlyAdded && (
@@ -727,239 +757,66 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                       cursor: 'pointer'
                     }}>?</span>
                 </div>
-                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>
+                
+                {/* Quick Info - Always Visible */}
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
                   {(() => {
                     if (!p.tags) return '';
 
                     const tags = Object.entries(p.tags);
-                    const addressOrder = ['addr:postcode', 'addr:city', 'addr:street', 'addr:housenumber'];
-
-                    // Check if we have all address components for formatted address
+                    
+                    // Get primary type/category
+                    const primaryType = p.tags?.tourism || p.tags?.amenity || p.tags?.leisure || p.tags?.shop || p.tags?.craft;
+                    
+                    // Get address if available
                     const addressComponents = {
                       postcode: p.tags['addr:postcode'],
                       city: p.tags['addr:city'],
                       street: p.tags['addr:street'],
                       housenumber: p.tags['addr:housenumber']
                     };
-
+                    
                     const hasCompleteAddress = Object.values(addressComponents).every(v => v && v.trim());
-
-                    if (hasCompleteAddress) {
-                      // Format as "Main Street 42, 12345 Berlin"
-                      const formattedAddress = `${addressComponents.street} ${addressComponents.housenumber}, ${addressComponents.postcode} ${addressComponents.city}`;
-
-                      // Get other non-address tags using the new filtering system
-                      const otherTags = tags.filter(([k]) => !shouldExcludeTag(k)).slice(0, 4); // Limit to 4 since we have address
-
-                      return (
-                        <>
-                          <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
-                            📍 {formattedAddress}
+                    
+                    return (
+                      <div>
+                        {primaryType && (
+                          <div style={{ marginBottom: 4, fontSize: 14, color: '#3b82f6', fontWeight: 500 }}>
+                            {primaryType.charAt(0).toUpperCase() + primaryType.slice(1).replace(/_/g, ' ')}
                           </div>
-                          {otherTags.map(([k, v]) => {
-                            const formatted = formatTag(k, v);
-                            if (!formatted) return null;
-
-                            return (
-                              <div key={k} style={{ marginBottom: 2 }}>
-                                {formatted}
-                              </div>
-                            );
-                          })}
-                        </>
-                      );
-                    } else {
-                      // Fall back to original format if incomplete address
-                      const addressTags = addressOrder
-                        .map(addrKey => tags.find(([k]) => k === addrKey))
-                        .filter((tag): tag is [string, string] => tag !== undefined);
-
-                      const otherTags = tags.filter(([k]) => !shouldExcludeTag(k));
-
-                      // Check if we have both street and housenumber to combine them
-                      const streetTag = addressTags.find(([k]) => k === 'addr:street');
-                      const houseNumberTag = addressTags.find(([k]) => k === 'addr:housenumber');
-
-                      // Check for contact address components
-                      const contactStreetTag = tags.find(([k]) => k === 'contact:street');
-                      const contactHouseNumberTag = tags.find(([k]) => k === 'contact:housenumber');
-                      const contactCityTag = tags.find(([k]) => k === 'contact:city');
-                      const contactPostcodeTag = tags.find(([k]) => k === 'contact:postcode');
-
-                      let processedAddressTags = addressTags;
-                      let combinedStreetAddress = null;
-                      let combinedContactAddress = null;
-
-                      // Combine contact address if we have components AND we don't have any other address display
-                      const hasCompleteAddr = p.tags['addr:postcode'] && p.tags['addr:city'] && p.tags['addr:street'] && p.tags['addr:housenumber'];
-                      const willHaveCombinedStreet = (streetTag && houseNumberTag) || (streetTag || houseNumberTag || addressTags.length > 0);
-                      if (!hasCompleteAddr && !willHaveCombinedStreet && (contactStreetTag || contactHouseNumberTag || contactCityTag || contactPostcodeTag)) {
-                        const addressParts: string[] = [];
-
-                        // Add housenumber and street
-                        if (contactHouseNumberTag && contactStreetTag) {
-                          addressParts.push(`${contactStreetTag[1]} ${contactHouseNumberTag[1]}`);
-                        } else if (contactStreetTag) {
-                          addressParts.push(contactStreetTag[1]);
-                        } else if (contactHouseNumberTag) {
-                          addressParts.push(contactHouseNumberTag[1]);
-                        }
-
-                        // Add city and postcode
-                        if (contactCityTag && contactPostcodeTag) {
-                          addressParts.push(`${contactPostcodeTag[1]} ${contactCityTag[1]}`);
-                        } else if (contactCityTag) {
-                          addressParts.push(contactCityTag[1]);
-                        } else if (contactPostcodeTag) {
-                          addressParts.push(contactPostcodeTag[1]);
-                        }
-
-                        if (addressParts.length > 0) {
-                          combinedContactAddress = {
-                            key: 'combined_contact',
-                            value: addressParts.join(', ')
-                          };
-
-                          // Filter out corresponding addr: fields to prevent duplication
-                          processedAddressTags = processedAddressTags.filter(([k]) => {
-                            if (contactStreetTag && k === 'addr:street') return false;
-                            if (contactHouseNumberTag && k === 'addr:housenumber') return false;
-                            if (contactCityTag && k === 'addr:city') return false;
-                            if (contactPostcodeTag && k === 'addr:postcode') return false;
-                            return true;
-                          });
-                        }
-                      } else {
-                        // Check for any addr: components to combine them
-                        const cityTag = addressTags.find(([k]) => k === 'addr:city');
-                        const postcodeTag = addressTags.find(([k]) => k === 'addr:postcode');
-
-                        // Create combined address if we have multiple addr components
-                        if ((streetTag || houseNumberTag || cityTag || postcodeTag) &&
-                          (streetTag && (houseNumberTag || cityTag || postcodeTag)) ||
-                          (cityTag && postcodeTag)) {
-
-                          const addressParts: string[] = [];
-
-                          // Add housenumber and street
-                          if (houseNumberTag && streetTag) {
-                            addressParts.push(`${streetTag[1]} ${houseNumberTag[1]}`);
-                          } else if (streetTag) {
-                            addressParts.push(streetTag[1]);
-                          } else if (houseNumberTag) {
-                            addressParts.push(houseNumberTag[1]);
-                          }
-
-                          // Add city and postcode
-                          if (cityTag && postcodeTag) {
-                            addressParts.push(`${postcodeTag[1]} ${cityTag[1]}`);
-                          } else if (cityTag) {
-                            addressParts.push(cityTag[1]);
-                          } else if (postcodeTag) {
-                            addressParts.push(postcodeTag[1]);
-                          }
-
-                          if (addressParts.length > 0) {
-                            combinedStreetAddress = {
-                              key: 'combined_addr',
-                              value: addressParts.join(', ')
-                            };
-
-                            // Filter out the combined address components
-                            processedAddressTags = processedAddressTags.filter(([k]) => {
-                              if (streetTag && k === 'addr:street') return false;
-                              if (houseNumberTag && k === 'addr:housenumber') return false;
-                              if (cityTag && k === 'addr:city') return false;
-                              if (postcodeTag && k === 'addr:postcode') return false;
-                              return true;
-                            });
-                          }
-                        } else if (streetTag && houseNumberTag) {
-                          // Fallback to original simple combination
-                          combinedStreetAddress = {
-                            key: 'combined_street',
-                            value: `${streetTag[1]} ${houseNumberTag[1]}`
-                          };
-                          processedAddressTags = addressTags.filter(([k]) => k !== 'addr:street' && k !== 'addr:housenumber');
-                        }
-                      }
-
-                      const sortedTags = [...processedAddressTags, ...otherTags].slice(0, 5);
-
-                      return (
-                        <>
-                          {combinedStreetAddress && (
-                            <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
-                              📍 {combinedStreetAddress.value}
-                            </div>
-                          )}
-                          {combinedContactAddress && (
-                            <div style={{ marginBottom: 2, fontWeight: 500, color: '#059669' }}>
-                              📍 {combinedContactAddress.value}
-                            </div>
-                          )}
-                          {sortedTags.map(([k, v]) => (
-                            <div key={k} style={{ marginBottom: 2 }}>
-                              {k === 'wikidata' && typeof v === 'string' ? (
-                                <a
-                                  href={`https://www.wikidata.org/wiki/${v}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                                >
-                                  {`wikidata.org/wiki/${v}`}
-                                </a>
-                              ) : k === 'wikipedia' && typeof v === 'string' && (v.startsWith('de:') || v.startsWith('es:')) ? (
-                                (() => {
-                                  const langCode = v.substring(0, 2);
-                                  const title = v.substring(3).replace(/ /g, '_');
-                                  return (
-                                    <a
-                                      href={`https://${langCode}.wikipedia.org/wiki/${title}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                                    >
-                                      {`https://${langCode}.wikipedia.org/wiki/${title}`}
-                                    </a>
-                                  );
-                                })()
-                              ) : k.startsWith('addr:') ? (
-                                <div style={{ fontWeight: 500, color: '#059669' }}>
-                                  📍 {k.replace('addr:', '')}: {v}
-                                </div>
-                              ) : (
-                                <>
-                                  {k === 'tourism' && v === 'viewpoint' ? 'viewpoint' : k === 'tourism' && v === 'hotel' ? 'hotel' : k === 'tourism' && v === 'museum' ? 'Museum' : k === 'highway' && v === 'bus_stop' ? 'bus stop' : k === 'amenity' && v === 'car_rental' ? 'Car Rental' : k === 'amenity' && v === 'restaurant' ? 'Restaurant' : k === 'museum' ? formatMuseumSubtype(v) : k === 'alt_name' ? 'aka:' : k === 'ele' ? 'altitude:' : k === 'air_conditioning' ? 'air condition:' : k.endsWith(':wikidata') ? `${k.replace(':wikidata', '')}:` : k === 'check_date' ? 'last checked:' : k.startsWith('check_date:') ? `last checked ${k.substring(11)}:` : `${k}:`} {
-                                    k === 'tourism' && v === 'viewpoint' ? '' : k === 'tourism' && v === 'hotel' ? '' : k === 'tourism' && v === 'museum' ? '' : k === 'highway' && v === 'bus_stop' ? '' : k === 'amenity' && v === 'car_rental' ? '' : k === 'amenity' && v === 'restaurant' ? '' : k === 'museum' ? '' : (k === 'website' || k === 'url' || (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://')))) ? (
-                                      <a
-                                        href={v.startsWith('http') ? v : `https://${v}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                                      >
-                                        {v}
-                                      </a>
-                                    ) : k.endsWith(':wikidata') && typeof v === 'string' && v.startsWith('Q') ? (
-                                      <a
-                                        href={`https://www.wikidata.org/wiki/${v}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        style={{ color: '#3b82f6', textDecoration: 'underline' }}
-                                      >
-                                        {`wikidata.org/wiki/${v}`}
-                                      </a>
-                                    ) : k === 'ele' ? `${v}m` : v
-                                  }
-                                </>
-                              )}
-                            </div>
-                          ))}
-                        </>
-                      );
-                    }
+                        )}
+                        {hasCompleteAddress && (
+                          <div style={{ marginBottom: 4, fontWeight: 500, color: '#059669' }}>
+                            📍 {addressComponents.street} {addressComponents.housenumber}, {addressComponents.postcode} {addressComponents.city}
+                          </div>
+                        )}
+                        {/* Show 2-3 most important tags */}
+                        {p.tags?.cuisine && (
+                          <div style={{ marginBottom: 2 }}>🍴 {p.tags.cuisine}</div>
+                        )}
+                        {p.tags?.opening_hours && (
+                          <div style={{ marginBottom: 2 }}>🕒 {p.tags.opening_hours}</div>
+                        )}
+                        {p.tags?.phone && (
+                          <div style={{ marginBottom: 2 }}>📞 {p.tags.phone}</div>
+                        )}
+                        {p.tags?.website && !isExpanded && (
+                          <div style={{ marginBottom: 2 }}>
+                            🌐 <a
+                              href={p.tags.website.startsWith('http') ? p.tags.website : `https://${p.tags.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#3b82f6', textDecoration: 'underline' }}
+                            >
+                              Website
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    );
                   })()}
                 </div>
+                
                 <div style={{
                   fontSize: 12,
                   color: '#16a34a',
@@ -967,12 +824,80 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                   background: '#f0fdf4',
                   padding: '2px 6px',
                   borderRadius: 4,
-                  display: 'inline-block'
+                  display: 'inline-block',
+                  marginBottom: 8
                 }}>
-                  Distance: {Math.round(p.distance_m)} m
+                  📏 {Math.round(p.distance_m)} m
                 </div>
+                
+                {/* Expandable Details Section */}
+                {isExpanded && (
+                  <div style={{
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTop: '1px solid #e5e7eb',
+                    fontSize: 13,
+                    color: '#4b5563'
+                  }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8, color: '#1f2937' }}>
+                      Additional Details
+                    </div>
+                    {(() => {
+                      if (!p.tags) return null;
+
+                      const tags = Object.entries(p.tags);
+                      
+                      // Priority tags already shown
+                      const priorityTags = new Set(['name', 'tourism', 'amenity', 'leisure', 'shop', 'craft', 
+                        'cuisine', 'opening_hours', 'phone', 'addr:postcode', 'addr:city', 
+                        'addr:street', 'addr:housenumber']);
+                      
+                      // Get remaining tags, filtered
+                      const detailedTags = tags.filter(([k]) => 
+                        !priorityTags.has(k) && !shouldExcludeTag(k)
+                      );
+                      
+                      if (detailedTags.length === 0) {
+                        return <div style={{ color: '#9ca3af', fontStyle: 'italic' }}>No additional details available</div>;
+                      }
+                      
+                      return detailedTags.map(([k, v]) => {
+                        const formatted = formatTag(k, v);
+                        if (!formatted) return null;
+
+                        return (
+                          <div key={k} style={{ marginBottom: 4, lineHeight: 1.5 }}>
+                            {formatted}
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
+                
+                {/* Toggle Button - Only show if there are additional details */}
+                {hasAdditionalDetails && (
+                  <button
+                    onClick={() => togglePlaceExpansion(placeKey)}
+                    style={{
+                      marginTop: 8,
+                      background: isExpanded ? '#f3f4f6' : '#3b82f6',
+                      color: isExpanded ? '#374151' : 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 500,
+                      width: '100%',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {isExpanded ? '▲ Show Less' : '▼ Show More Details'}
+                  </button>
+                )}
               </li>
-            ))}
+            )})}
           </ul>
         </>
       )}
