@@ -6,6 +6,7 @@ function hasMessage(err: unknown): err is { message: string } {
 import { NextResponse } from 'next/server';
 import { getSearchRadiusMeters } from '../../../utils/constants';
 import { overpassCache } from '../../../utils/overpass-cache';
+import { requireAuth } from '../../../utils/server-auth';
 
 // Type for Overpass API elements
 interface OverpassElement {
@@ -46,6 +47,10 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 export async function POST(req: Request) {
+  // Verify authentication
+  const authError = await requireAuth(req);
+  if (authError) return authError;
+
   try {
   const body = await req.json();
   const { lat, lon, tags, keyword, limit = 20, radiusKm = 5 } = body as { lat: number; lon: number; tags?: string[]; keyword?: string; limit?: number; radiusKm?: number };

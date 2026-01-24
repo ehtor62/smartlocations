@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '../../../utils/server-auth';
 
 export async function GET(req: Request) {
+  // Verify authentication
+  const authError = await requireAuth(req);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(req.url);
     const lat = searchParams.get('lat');

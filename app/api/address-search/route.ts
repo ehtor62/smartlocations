@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '../../../utils/server-auth';
 
 export async function GET(request: NextRequest) {
+  // Verify authentication
+  const authError = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');

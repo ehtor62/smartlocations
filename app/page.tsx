@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { authenticatedFetch } from '../utils/client-auth';
 
 import dynamic from 'next/dynamic';
 const MapClient = dynamic(() => import('../components/MapClient'), { ssr: false });
@@ -270,7 +271,7 @@ export default function Page() {
       // Limit tags to prevent API overload
       const limitedTags = tags.slice(0, 30);
       
-      const res = await fetch('/api/search', {
+      const res = await authenticatedFetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces, radiusKm }),
@@ -481,7 +482,7 @@ export default function Page() {
           
         ];
 
-        const res = await fetch('/api/search', {
+        const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lat, lon, tags, limit: numberOfPlaces, radiusKm }),
@@ -556,7 +557,7 @@ export default function Page() {
     
     // Perform reverse geocoding to get address name
     try {
-      const response = await fetch(`/api/reverse-geocode?lat=${lat}&lon=${lon}`);
+      const response = await authenticatedFetch(`/api/reverse-geocode?lat=${lat}&lon=${lon}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -852,7 +853,7 @@ export default function Page() {
     if (keepLocation && keptAddress.trim() !== '') {
       try {
         // Geocode the keptAddress using the address-search API
-        const response = await fetch(`/api/address-search?q=${encodeURIComponent(keptAddress)}`);
+        const response = await authenticatedFetch(`/api/address-search?q=${encodeURIComponent(keptAddress)}`);
         if (!response.ok) throw new Error('Failed to geocode address');
         const data = await response.json();
         if (!data || !Array.isArray(data) || data.length === 0) throw new Error('No results for address');
@@ -872,7 +873,7 @@ export default function Page() {
           console.log(`Limited search from ${allTags.length} to 30 tags for better performance`);
         }
 
-        const res = await fetch('/api/search', {
+        const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lat: parseFloat(lat), lon: parseFloat(lon), tags: limitedTags, limit: numberOfPlaces, radiusKm }),
@@ -938,7 +939,7 @@ export default function Page() {
             console.log(`Limited search from ${allTags.length} to 30 tags for better performance`);
           }
 
-          const res = await fetch('/api/search', {
+          const res = await authenticatedFetch('/api/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces, radiusKm }),
@@ -990,7 +991,7 @@ export default function Page() {
           console.log(`Limited search from ${allTags.length} to 30 tags for better performance`);
         }
 
-        const res = await fetch('/api/search', {
+        const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces, radiusKm }),
@@ -1039,7 +1040,7 @@ export default function Page() {
     // If keepLocation is active and keptAddress is set, use its coordinates
     if (keepLocation && keptAddress.trim() !== '') {
       try {
-        const response = await fetch(`/api/address-search?q=${encodeURIComponent(keptAddress)}`);
+        const response = await authenticatedFetch(`/api/address-search?q=${encodeURIComponent(keptAddress)}`);
         if (!response.ok) throw new Error('Failed to geocode address');
         const data = await response.json();
         if (!data || !Array.isArray(data) || data.length === 0) throw new Error('No results for address');
@@ -1048,7 +1049,7 @@ export default function Page() {
         setCenter({ lat: parseFloat(lat), lon: parseFloat(lon) });
         setShowGlobeSpinner(true);
 
-        const res = await fetch('/api/search', {
+        const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1080,7 +1081,7 @@ export default function Page() {
     if (searchMode === 'address' && center) {
       setShowGlobeSpinner(true);
       try {
-        const res = await fetch('/api/search', {
+        const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1140,7 +1141,7 @@ export default function Page() {
         }
 
         try {
-          const res = await fetch('/api/search', {
+          const res = await authenticatedFetch('/api/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireAuth } from '../../../utils/server-auth';
 
 export async function POST(request: Request) {
+  // Verify authentication
+  const authError = await requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { prompt } = await request.json();
     

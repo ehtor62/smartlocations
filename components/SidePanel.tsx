@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useFirebaseUser } from './LoginModalOnLoadWrapper';
-
+import { authenticatedFetch } from '../utils/client-auth';
 
 import type { Place } from '../app/page';
 
@@ -722,7 +722,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
                         const prompt = promptParts.join('\n');
 
                         // Call our API instead of opening website
-                        const response = await fetch('/api/gemini', {
+                        const response = await authenticatedFetch('/api/gemini', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
