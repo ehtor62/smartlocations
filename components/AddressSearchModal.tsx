@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { authenticatedFetch } from '../utils/client-auth';
 
 // Address suggestion interface for Nominatim API
 export interface AddressSuggestion {
@@ -88,14 +89,10 @@ export default function AddressSearchModal({
 
     try {
       // Using our API route to proxy Nominatim requests
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `/api/address-search?q=${encodeURIComponent(query)}`,
         { signal: abortControllerRef.current.signal }
       );
-      
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`); 
-      }
       
       const data = await response.json();
       setAddressSuggestions(data);
@@ -114,6 +111,13 @@ export default function AddressSearchModal({
     // Clear existing timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Show searching indicator immediately if query is long enough
+    if (query.length >= 3) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
     }
 
     // Set new timeout
