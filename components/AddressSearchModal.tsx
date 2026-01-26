@@ -160,18 +160,32 @@ export default function AddressSearchModal({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-[1000] p-4" style={{ maxWidth: '100vw', maxHeight: '100vh' }}>
-      {/* Main modal */}
+      {/* Animated gradient background */}
       <div 
-        className="bg-white/95 backdrop-blur-sm p-3 sm:p-4 rounded-lg shadow-xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto" 
+        className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-purple-400/20 to-pink-400/20 animate-pulse" 
+        style={{ 
+          animation: 'gradient 8s ease infinite',
+          backgroundSize: '400% 400%',
+        }}
+      />
+      
+      {/* Main modal with glassmorphism */}
+      <div 
+        className="relative bg-white/70 backdrop-blur-xl p-3 sm:p-4 rounded-3xl shadow-2xl w-80 max-w-xs mx-auto max-h-[90vh] overflow-y-auto border border-white/50" 
         style={{ 
           maxWidth: 'calc(100vw - 2rem)', 
           maxHeight: 'calc(100vh - 2rem)',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
+          overscrollBehavior: 'contain',
+          animation: 'float 6s ease-in-out infinite',
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37), 0 0 80px rgba(59, 130, 246, 0.2)',
         }}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-lg sm:text-2xl">Search by Address</h2>
+          <h2 className="font-bold text-lg sm:text-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent" style={{ 
+            animation: 'shimmer 3s ease-in-out infinite',
+            backgroundSize: '200% auto',
+          }}>Search by Address</h2>
           <button 
             onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
@@ -200,7 +214,8 @@ export default function AddressSearchModal({
           <div className="mt-3 mb-2">
             <button
               onClick={() => setMapClickMode(true)}
-              className="w-full px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+              className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-300 hover:shadow-lg hover:scale-105 font-medium text-sm flex items-center justify-center gap-2 shadow-md"
+              style={{ backdropFilter: 'blur(8px)' }}
             >
               <span className="text-xl">📍</span>
               <span>Or Click on Map to Select Location</span>

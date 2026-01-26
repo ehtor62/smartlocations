@@ -154,11 +154,22 @@ function AutoZoomToCircle({ center, radius, showCircle }: { center: { lat: numbe
 }
 
 function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lon: number) => void }) {
-  useMapEvents({
+  const map = useMapEvents({
     click: (e) => {
       onMapClick(e.latlng.lat, e.latlng.lng);
     },
   });
+  
+  // Change cursor to pointer when in map click mode
+  React.useEffect(() => {
+    const container = map.getContainer();
+    container.style.cursor = 'pointer';
+    
+    return () => {
+      container.style.cursor = '';
+    };
+  }, [map]);
+  
   return null;
 }
 
