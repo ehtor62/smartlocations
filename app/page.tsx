@@ -1189,18 +1189,21 @@ export default function Page() {
       {/* Globe Spinner Overlay */}
       {showGlobeSpinner && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center pointer-events-none">
-          <Image
-            src="/globe.svg"
-            alt="Loading..."
-            width={96}
-            height={96}
-            className="animate-spin-slow w-24 h-24 pointer-events-auto"
-            style={{ animation: 'spin 2s linear infinite', filter: 'brightness(0) invert(1)' }}
-            priority
-          />
+          {/* Elegant spinner - just the rotating ring */}
+          <div className="relative w-20 h-20 pointer-events-auto">
+            <div 
+              className="absolute inset-0 rounded-full"
+              style={{
+                background: 'conic-gradient(from 0deg, transparent 0deg, #3b82f6 90deg, #8b5cf6 180deg, #ec4899 270deg, transparent 360deg)',
+                animation: 'smooth-spin 1.5s linear infinite',
+              }}
+            />
+          </div>
+          
           <style>{`
-            @keyframes spin { 100% { transform: rotate(360deg); } }
-            .animate-spin-slow { animation: spin 2s linear infinite; }
+            @keyframes smooth-spin { 
+              100% { transform: rotate(360deg); } 
+            }
           `}</style>
         </div>
       )}
