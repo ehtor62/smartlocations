@@ -1102,16 +1102,28 @@ export default function Page() {
     if (searchMode === 'address' && center) {
       setShowGlobeSpinner(true);
       try {
+        // Check if selected location is a broad area
+        const isBroad = selectedAddressSuggestion && isBroadArea(selectedAddressSuggestion);
+        
+        const searchBody: any = {
+          lat: center.lat, 
+          lon: center.lon, 
+          keyword: keywordSearch.trim(),
+          limit: isBroad ? 20 : numberOfPlaces,
+        };
+        
+        // For broad areas, use bounding box instead of radius
+        if (isBroad && selectedAddressSuggestion?.boundingbox) {
+          searchBody.boundingbox = selectedAddressSuggestion.boundingbox;
+          console.log('Keyword search in broad area with bounding box:', selectedAddressSuggestion.boundingbox);
+        } else {
+          searchBody.radiusKm = radiusKm;
+        }
+        
         const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            lat: center.lat, 
-            lon: center.lon, 
-            keyword: keywordSearch.trim(),
-            limit: numberOfPlaces, 
-            radiusKm 
-          }),
+          body: JSON.stringify(searchBody),
           signal: AbortSignal.timeout(60000)
         });
         const data = await res.json();

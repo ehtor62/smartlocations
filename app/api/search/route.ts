@@ -89,6 +89,17 @@ export async function POST(req: Request) {
       console.log('Keyword search using Nominatim for:', searchTerm);
       
       try {
+        // Build viewbox based on bounding box or radius
+        let viewboxParam: string;
+        if (boundingbox && boundingbox.length === 4) {
+          const [minlat, maxlat, minlon, maxlon] = boundingbox.map(parseFloat);
+          viewboxParam = `viewbox=${minlon},${maxlat},${maxlon},${minlat}`;
+          console.log('Using bounding box for keyword search:', viewboxParam);
+        } else {
+          // Use radius-based viewbox
+          viewboxParam = `viewbox=${lon - (radiusKm * 0.015)},${lat + (radiusKm * 0.015)},${lon + (radiusKm * 0.015)},${lat - (radiusKm * 0.015)}`;
+        }
+        
         // Use Nominatim search API to find places by keyword
         const nominatimResp = await fetch(
           `https://nominatim.openstreetmap.org/search?` +
@@ -97,7 +108,7 @@ export async function POST(req: Request) {
           `format=json&` +
           `limit=${limit}&` +
           `bounded=1&` +
-          `viewbox=${lon - (radiusKm * 0.015)},${lat + (radiusKm * 0.015)},${lon + (radiusKm * 0.015)},${lat - (radiusKm * 0.015)}&` +
+          `${viewboxParam}&` +
           `addressdetails=1&` +
           `extratags=1`,
           {
