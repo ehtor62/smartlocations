@@ -53,17 +53,28 @@ export async function POST(req: Request) {
 
   try {
   const body = await req.json();
-  const { lat, lon, tags, keyword, limit = 20, radiusKm = 5 } = body as { lat: number; lon: number; tags?: string[]; keyword?: string; limit?: number; radiusKm?: number };
+  const { lat, lon, tags, keyword, limit = 20, radiusKm = 5, boundingbox } = body as { 
+    lat: number; 
+    lon: number; 
+    tags?: string[]; 
+    keyword?: string; 
+    limit?: number; 
+    radiusKm?: number;
+    boundingbox?: string[]; // [minlat, maxlat, minlon, maxlon]
+  };
     if (typeof lat !== 'number' || typeof lon !== 'number') {
       return NextResponse.json({ error: 'lat and lon required' }, { status: 400 });
     }
 
-    // Check cache first (now includes radiusKm and limit)
-    const cacheKey = keyword ? `keyword:${keyword}` : (tags || []).join(',');
-    const cachedResult = overpassCache.get(lat, lon, keyword ? [cacheKey] : (tags || []), radiusKm, limit);
-    if (cachedResult) {
-      console.log('Returning cached result');
-      return NextResponse.json(cachedResult as SearchResult);
+    // For broad areas with bounding box, skip caching for now (could add bbox to cache key later)
+    if (!boundingbox) {
+      // Check cache first (now includes radiusKm and limit)
+      const cacheKey = keyword ? `keyword:${keyword}` : (tags || []).join(',');
+      const cachedResult = overpassCache.get(lat, lon, keyword ? [cacheKey] : (tags || []), radiusKm, limit);
+      if (cachedResult) {
+        console.log('Returning cached result');
+        return NextResponse.json(cachedResult as SearchResult);
+      }
     }
 
     // Build Overpass QL
@@ -188,17 +199,36 @@ export async function POST(req: Request) {
       }
     } else if (tags && tags.length > 0) {
       // Tag-based search (existing Overpass logic)
-      const tagFilters = (tags || []).map((t: string) => {
-        const [k, v] = t.split('=');
-        return `node["${k}"="${v}"](around:${radiusMeters},${lat},${lon});way["${k}"="${v}"](around:${radiusMeters},${lat},${lon});relation["${k}"="${v}"](around:${radiusMeters},${lat},${lon});`;
-      }).join('\n');
+      // Use bounding box for broad areas, radius for specific locations
+      if (boundingbox && boundingbox.length === 4) {
+        console.log('Using bounding box search for broad area');
+        const [minlat, maxlat, minlon, maxlon] = boundingbox.map(parseFloat);
+        
+        const tagFilters = (tags || []).map((t: string) => {
+          const [k, v] = t.split('=');
+          return `node["${k}"="${v}"](${minlat},${minlon},${maxlat},${maxlon});way["${k}"="${v}"](${minlat},${minlon},${maxlat},${maxlon});relation["${k}"="${v}"](${minlat},${minlon},${maxlat},${maxlon});`;
+        }).join('\n');
 
-      query = `
-      [out:json][timeout:45];
-      (
-        ${tagFilters}
-      );
-      out center;`;
+        query = `
+        [out:json][timeout:45];
+        (
+          ${tagFilters}
+        );
+        out center;`;
+      } else {
+        // Radius-based search for specific locations
+        const tagFilters = (tags || []).map((t: string) => {
+          const [k, v] = t.split('=');
+          return `node["${k}"="${v}"](around:${radiusMeters},${lat},${lon});way["${k}"="${v}"](around:${radiusMeters},${lat},${lon});relation["${k}"="${v}"](around:${radiusMeters},${lat},${lon});`;
+        }).join('\n');
+
+        query = `
+        [out:json][timeout:45];
+        (
+          ${tagFilters}
+        );
+        out center;`;
+      }
     } else {
       // No keyword and no tags provided
       return NextResponse.json({ places: [] });

@@ -9,7 +9,7 @@ const MapClient = dynamic(() => import('../components/MapClient'), { ssr: false 
 import SidePanel from '../components/SidePanel';
 import CategoryModal from '../components/CategoryModal';
 import CategoryDetailsModal from '../components/CategoryDetailsModal';
-import AddressSearchModal, { type AddressSuggestion } from '../components/AddressSearchModal';
+import AddressSearchModal, { type AddressSuggestion, isBroadArea } from '../components/AddressSearchModal';
 import StartingModal from '../components/StartingModal';
 import { tagGroups as initialTagGroups } from '../utils/allowedtags';
 import { saveUserAttractions, loadUserAttractions, resetUserAttractions } from '../utils/user-attractions';
@@ -116,6 +116,8 @@ export default function Page() {
   const [keptAddress, setKeptAddress] = useState('');
   // Store the display name of the selected address
   const [selectedLocationName, setSelectedLocationName] = useState('');
+  // Store the full address suggestion for broad area detection
+  const [selectedAddressSuggestion, setSelectedAddressSuggestion] = useState<AddressSuggestion | null>(null);
   // Track if the current search is from the "Favorites" button
   const [isFavoritesSearch, setIsFavoritesSearch] = useState(false);
   const [isSearching, setIsSearching] = useState(false); // Prevent multiple simultaneous searches
@@ -536,6 +538,7 @@ export default function Page() {
     
     setCenter({ lat, lon });
     setSelectedLocationName(suggestion.display_name);
+    setSelectedAddressSuggestion(suggestion); // Store full suggestion for broad area detection
     setAddressModalVisible(false);
     
     // Open category modal and set to search at address location
@@ -991,10 +994,28 @@ export default function Page() {
           console.log(`Limited search from ${allTags.length} to 30 tags for better performance`);
         }
 
+        // Check if selected location is a broad area
+        const isBroad = selectedAddressSuggestion && isBroadArea(selectedAddressSuggestion);
+        
+        const searchBody: any = {
+          lat, 
+          lon, 
+          tags: limitedTags, 
+          limit: isBroad ? 20 : numberOfPlaces,
+        };
+        
+        // For broad areas, use bounding box instead of radius
+        if (isBroad && selectedAddressSuggestion?.boundingbox) {
+          searchBody.boundingbox = selectedAddressSuggestion.boundingbox;
+          console.log('Searching broad area with bounding box:', selectedAddressSuggestion.boundingbox);
+        } else {
+          searchBody.radiusKm = radiusKm;
+        }
+
         const res = await authenticatedFetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lon, tags: limitedTags, limit: numberOfPlaces, radiusKm }),
+          body: JSON.stringify(searchBody),
           signal: AbortSignal.timeout(60000) // 60 second timeout for frontend
         });
         const data = await res.json();

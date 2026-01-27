@@ -10,6 +10,52 @@ export interface AddressSuggestion {
   lat: string;
   lon: string;
   type: string;
+  class?: string;
+  osm_type?: string;
+  boundingbox?: string[];
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    country?: string;
+    country_code?: string;
+  };
+}
+
+// Helper function to determine if a location is a broad area
+export function isBroadArea(suggestion: AddressSuggestion): boolean {
+  const { type, class: osmClass, osm_type, address, boundingbox } = suggestion;
+  
+  // Countries and states are definitely broad areas
+  if (type === 'country' || osmClass === 'boundary' && type === 'administrative') {
+    return true;
+  }
+  
+  // Check if it's a state/region level administrative area
+  if (address) {
+    // If it has a state but no city/town/village, it's likely the state itself
+    const hasSettlement = address.city || address.town || address.village;
+    if (address.state && !hasSettlement) {
+      return true;
+    }
+    // If it's just the country
+    if (address.country && !address.state && !hasSettlement) {
+      return true;
+    }
+  }
+  
+  // Calculate area size from bounding box (rough estimate)
+  if (boundingbox && boundingbox.length === 4) {
+    const latDiff = Math.abs(parseFloat(boundingbox[1]) - parseFloat(boundingbox[0]));
+    const lonDiff = Math.abs(parseFloat(boundingbox[3]) - parseFloat(boundingbox[2]));
+    // If area is larger than ~0.5 degrees (roughly 55km), consider it broad
+    if (latDiff > 0.5 || lonDiff > 0.5) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 interface AddressSearchModalProps {
