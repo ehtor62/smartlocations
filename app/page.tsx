@@ -1189,13 +1189,15 @@ export default function Page() {
       {/* Globe Spinner Overlay */}
       {showGlobeSpinner && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center pointer-events-none">
-          {/* Elegant spinner - just the rotating ring */}
-          <div className="relative w-20 h-20 pointer-events-auto">
+          {/* Elegant spinner - hollow ring that spins around the location marker */}
+          <div className="relative w-40 h-40 pointer-events-auto">
             <div 
               className="absolute inset-0 rounded-full"
               style={{
                 background: 'conic-gradient(from 0deg, transparent 0deg, #3b82f6 90deg, #8b5cf6 180deg, #ec4899 270deg, transparent 360deg)',
                 animation: 'smooth-spin 1.5s linear infinite',
+                maskImage: 'radial-gradient(circle, transparent 40%, black 40%)',
+                WebkitMaskImage: 'radial-gradient(circle, transparent 40%, black 40%)',
               }}
             />
           </div>

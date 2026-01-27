@@ -44,7 +44,6 @@ export default function LoginModalOnLoadWrapper({ children }: { children: React.
       await signInWithEmail(email, password);
       // onAuthStateChanged will handle closing the modal
     } catch (error: any) {
-      console.error("Email/password login error:", error);
       let errorMessage = 'Error: wrong password';
       if (error.code === 'auth/invalid-email') {
         errorMessage = 'Error: invalid email address';
