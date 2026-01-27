@@ -228,10 +228,12 @@ export default function AddressSearchModal({
         }}
       >
         <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-lg sm:text-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent" style={{ 
+          <h2 className="font-bold text-base sm:text-xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent text-center flex-1" style={{ 
             animation: 'shimmer 3s ease-in-out infinite',
             backgroundSize: '200% auto',
-          }}>Search by Address</h2>
+          }}>
+            Search by<br />Address or Region
+          </h2>
           <button 
             onClick={handleClose}
             className="text-gray-500 hover:text-gray-700 text-lg sm:text-xl font-bold p-1"
