@@ -1001,7 +1001,7 @@ export default function Page() {
           lat, 
           lon, 
           tags: limitedTags, 
-          limit: isBroad ? 20 : numberOfPlaces,
+          limit: numberOfPlaces,
         };
         
         // For broad areas, use bounding box instead of radius

@@ -215,17 +215,23 @@ export async function POST(req: Request) {
         console.log('Using bounding box search for broad area');
         const [minlat, maxlat, minlon, maxlon] = boundingbox.map(parseFloat);
         
-        const tagFilters = (tags || []).map((t: string) => {
+        // Limit tags for broad area searches to improve performance
+        const limitedTags = (tags || []).slice(0, 15);
+        if ((tags || []).length > 15) {
+          console.log(`Limited broad area search from ${tags?.length} to 15 tags for performance`);
+        }
+        
+        const tagFilters = limitedTags.map((t: string) => {
           const [k, v] = t.split('=');
           return `node["${k}"="${v}"](${minlat},${minlon},${maxlat},${maxlon});way["${k}"="${v}"](${minlat},${minlon},${maxlat},${maxlon});relation["${k}"="${v}"](${minlat},${minlon},${maxlat},${maxlon});`;
         }).join('\n');
 
         query = `
-        [out:json][timeout:45];
+        [out:json][timeout:50];
         (
           ${tagFilters}
         );
-        out center;`;
+        out center ${limit * 2};`;
       } else {
         // Radius-based search for specific locations
         const tagFilters = (tags || []).map((t: string) => {
@@ -234,11 +240,11 @@ export async function POST(req: Request) {
         }).join('\n');
 
         query = `
-        [out:json][timeout:45];
+        [out:json][timeout:50];
         (
           ${tagFilters}
         );
-        out center;`;
+        out center ${limit * 2};`;
       }
     } else {
       // No keyword and no tags provided
@@ -263,7 +269,7 @@ export async function POST(req: Request) {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({ data: query }),
-          signal: AbortSignal.timeout(50000) // 50 second timeout to allow for Overpass timeout
+          signal: AbortSignal.timeout(55000) // 55 second timeout to allow for Overpass timeout
         });
 
         if (!resp.ok) {
