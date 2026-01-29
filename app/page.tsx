@@ -601,6 +601,9 @@ export default function Page() {
         setKeptAddress('');
       }
       
+      // Clear previous address suggestion to prevent using old bounding box
+      setSelectedAddressSuggestion(null);
+      
       // Open category modal and set to search at address location
       setSelectedCategories([]); // Reset category selections
       setSearchMode('address'); // Set to search at address location

@@ -37,6 +37,27 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
     });
   };
 
+  // Swipe gesture handling for the border handle
+  const touchStartX = React.useRef<number>(0);
+  const touchStartY = React.useRef<number>(0);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX.current;
+    const deltaY = touchEndY - touchStartY.current;
+    
+    // Check if horizontal swipe is dominant and is swiping right
+    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 50) {
+      onMinimize();
+    }
+  };
+
   // Define tag filtering configuration
   const tagConfig = {
     // Tags to completely exclude from display
@@ -428,10 +449,57 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       transition: 'right 300ms ease-in-out, width 300ms ease-in-out, box-shadow 300ms ease-in-out',
       zIndex: 1001,
       padding: minimized ? 0 : 16,
+      paddingLeft: minimized ? 0 : 46,
       overflowY: minimized ? 'hidden' : 'auto',
       borderLeft: minimized ? 'none' : '2px solid #3b82f6',
       overflowX: 'hidden'
     }}>
+      {/* Clickable Border Handle */}
+      {!minimized && open && (
+        <div
+          onClick={onMinimize}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            position: 'fixed',
+            left: `calc(100vw - ${sidebarWidth}px)`,
+            top: 0,
+            height: '100vh',
+            width: '30px',
+            background: 'linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.3))',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1002,
+            borderTopLeftRadius: '8px',
+            borderBottomLeftRadius: '8px',
+            transition: 'background 200ms ease, width 200ms ease',
+            userSelect: 'none',
+            WebkitTapHighlightColor: 'transparent'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(to right, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.4))';
+            e.currentTarget.style.width = '35px';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.3))';
+            e.currentTarget.style.width = '30px';
+          }}
+          title="Click or swipe to hide panel"
+        >
+          <div style={{
+            fontSize: '20px',
+            color: '#3b82f6',
+            fontWeight: 'bold',
+            transform: 'rotate(0deg)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+          }}>
+            «
+          </div>
+        </div>
+      )}
+      
       {!minimized && (
         <>
           {/* Gemini AI Panel */}
