@@ -89,6 +89,13 @@ export default function AddressSearchModal({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Turn off searching indicator when suggestions are available
+  React.useEffect(() => {
+    if (addressSuggestions.length > 0) {
+      setIsSearching(false);
+    }
+  }, [addressSuggestions]);
+
   // Sync addressInput with keptAddress if keepLocation is active
   React.useEffect(() => {
     if (keepLocation) {
@@ -142,13 +149,16 @@ export default function AddressSearchModal({
       
       const data = await response.json();
       setAddressSuggestions(data);
+      // If no results, turn off searching indicator
+      if (data.length === 0) {
+        setIsSearching(false);
+      }
     } catch (error) {
       // Don't log aborted requests as errors
       if (error instanceof Error && error.name !== 'AbortError') {
         console.error('Address search failed:', error);
         setAddressSuggestions([]);
       }
-    } finally {
       setIsSearching(false);
     }
   };
