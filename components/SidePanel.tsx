@@ -449,7 +449,7 @@ export default function SidePanel({ open, onClose, onMinimize, places, minimized
       transition: 'right 300ms ease-in-out, width 300ms ease-in-out, box-shadow 300ms ease-in-out',
       zIndex: 1001,
       padding: minimized ? 0 : 16,
-      paddingLeft: minimized ? 0 : 46,
+      paddingLeft: minimized ? 0 : 60,
       overflowY: minimized ? 'hidden' : 'auto',
       borderLeft: minimized ? 'none' : '2px solid #3b82f6',
       overflowX: 'hidden'
