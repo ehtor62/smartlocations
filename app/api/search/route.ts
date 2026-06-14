@@ -260,83 +260,131 @@ export async function POST(req: Request) {
 
     let lastError: Error | null = null;
     
-    // Try each endpoint until one works
+    // Try each endpoint until one works, with retries/backoff per endpoint
+    const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+    const maxAttempts = 3;
+
     for (const endpoint of overpassEndpoints) {
-      try {
-        console.log(`Trying Overpass endpoint: ${endpoint}`);
-        
-        const resp = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ data: query }),
-          signal: AbortSignal.timeout(55000) // 55 second timeout to allow for Overpass timeout
-        });
+      console.log(`Trying Overpass endpoint: ${endpoint}`);
+      let endpointSucceeded = false;
 
-        if (!resp.ok) {
-          console.warn(`Overpass endpoint ${endpoint} returned status ${resp.status}`);
-          lastError = new Error(`HTTP ${resp.status} from ${endpoint}`);
-          continue;
-        }
+      for (let attempt = 1; attempt <= maxAttempts && !endpointSucceeded; attempt++) {
+        try {
+          const resp = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/json',
+              'User-Agent': 'SmartLocations/1.0 (development)'
+            },
+            body: new URLSearchParams({ data: query }),
+            signal: AbortSignal.timeout(55000)
+          });
 
-        const json = await resp.json();
-        
-        // Check if we got a valid response structure
-        if (!json || typeof json !== 'object') {
-          console.warn(`Invalid JSON response from ${endpoint}`);
-          lastError = new Error(`Invalid response from ${endpoint}`);
-          continue;
-        }
+          if (!resp.ok) {
+            const respText = await resp.text().catch(() => '<unreadable response body>');
+            console.warn(`Overpass endpoint ${endpoint} returned status ${resp.status}. Body: ${respText}`);
 
-        // Check for Overpass API errors
-        if (json.remark && json.remark.includes('error')) {
-          console.warn(`Overpass API error from ${endpoint}: ${json.remark}`);
-          lastError = new Error(`Overpass error: ${json.remark}`);
-          continue;
-        }
-
-        const elements: OverpassElement[] = json.elements || [];
-        console.log(`Successfully got ${elements.length} elements from ${endpoint}`);
-        
-        // Process the results (same as before)
-        const normalized = elements.map((el: OverpassElement) => {
-          let elLat = el.lat;
-          let elLon = el.lon;
-          if (elLat == null || elLon == null) {
-            // for ways/relations Overpass returns center
-            if (el.center) {
-              elLat = el.center.lat;
-              elLon = el.center.lon;
+            // Handle rate limiting: honor Retry-After or exponential backoff
+            if (resp.status === 429 && attempt < maxAttempts) {
+              const retryAfter = resp.headers.get('Retry-After');
+              const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 500 * Math.pow(3, attempt - 1);
+              console.log(`429 received from ${endpoint}; retrying after ${waitMs}ms (attempt ${attempt})`);
+              await sleep(waitMs);
+              continue;
             }
+
+            // Don't retry on 406 (content negotiation)
+            if (resp.status === 406) {
+              lastError = new Error(`HTTP 406 from ${endpoint}: ${respText}`);
+              break;
+            }
+
+            // Retry on other 5xx errors a few times
+            if (resp.status >= 500 && attempt < maxAttempts) {
+              const waitMs = 500 * Math.pow(2, attempt - 1);
+              console.log(`Server error ${resp.status} from ${endpoint}; retrying after ${waitMs}ms (attempt ${attempt})`);
+              await sleep(waitMs);
+              continue;
+            }
+
+            lastError = new Error(`HTTP ${resp.status} from ${endpoint}: ${respText}`);
+            break;
           }
-          return {
-            id: el.id,
-            type: el.type,
-            lat: elLat,
-            lon: elLon,
-            tags: el.tags || {}
-          };
-        }).filter((e) => e.lat != null && e.lon != null);
 
-        // Compute distances and sort
-        const withDist = normalized.map((e) => ({ ...e, distance: haversineDistance(lat, lon, e.lat!, e.lon!) }));
-        withDist.sort((a, b) => a.distance - b.distance);
+          // Parse JSON response
+          let json: any;
+          try {
+            json = await resp.json();
+          } catch (parseErr) {
+            const body = await resp.text().catch(() => '<unreadable response body>');
+            console.warn(`Failed to parse JSON from ${endpoint}. Body: ${body}`);
+            lastError = new Error(`Invalid JSON from ${endpoint}`);
+            break;
+          }
 
-        // Choose up to the specified limit or all within radius
-        const chosen = withDist.slice(0, limit).map((e) => ({ id: e.id, type: e.type, lat: e.lat, lon: e.lon, tags: e.tags, distance_m: Math.round(e.distance) }));
+          if (!json || typeof json !== 'object') {
+            console.warn(`Invalid JSON response from ${endpoint}`);
+            lastError = new Error(`Invalid response from ${endpoint}`);
+            break;
+          }
 
-        const result = { places: chosen };
-        
-  // Cache the successful result (now includes radiusKm and limit)
-  const cacheKeyForStorage = keyword ? `keyword:${keyword}` : (tags || []).join(',');
-  overpassCache.set(lat, lon, keyword ? [cacheKeyForStorage] : (tags || []), radiusKm, limit, result);
-        
-        return NextResponse.json(result);
-        
-      } catch (fetchError: unknown) {
-        console.warn(`Error with endpoint ${endpoint}:`, fetchError);
-        lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
-        continue;
+          if (json.remark && json.remark.includes('error')) {
+            console.warn(`Overpass API error from ${endpoint}: ${json.remark}`);
+            lastError = new Error(`Overpass error: ${json.remark}`);
+            break;
+          }
+
+          const elements: OverpassElement[] = json.elements || [];
+          console.log(`Successfully got ${elements.length} elements from ${endpoint}`);
+
+          // Process results
+          const normalized = elements.map((el: OverpassElement) => {
+            let elLat = el.lat;
+            let elLon = el.lon;
+            if (elLat == null || elLon == null) {
+              if (el.center) {
+                elLat = el.center.lat;
+                elLon = el.center.lon;
+              }
+            }
+            return {
+              id: el.id,
+              type: el.type,
+              lat: elLat,
+              lon: elLon,
+              tags: el.tags || {}
+            };
+          }).filter((e) => e.lat != null && e.lon != null);
+
+          const withDist = normalized.map((e) => ({ ...e, distance: haversineDistance(lat, lon, e.lat!, e.lon!) }));
+          withDist.sort((a, b) => a.distance - b.distance);
+
+          const chosen = withDist.slice(0, limit).map((e) => ({ id: e.id, type: e.type, lat: e.lat, lon: e.lon, tags: e.tags, distance_m: Math.round(e.distance) }));
+          const result = { places: chosen };
+
+          // Cache successful result
+          const cacheKeyForStorage = keyword ? `keyword:${keyword}` : (tags || []).join(',');
+          overpassCache.set(lat, lon, keyword ? [cacheKeyForStorage] : (tags || []), radiusKm, limit, result);
+
+          endpointSucceeded = true;
+          return NextResponse.json(result);
+
+        } catch (fetchError: unknown) {
+          console.warn(`Error with endpoint ${endpoint} on attempt ${attempt}:`, fetchError);
+          lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+          if (attempt < maxAttempts) {
+            const waitMs = 500 * Math.pow(2, attempt - 1);
+            console.log(`Retrying ${endpoint} after ${waitMs}ms (attempt ${attempt})`);
+            await sleep(waitMs);
+            continue;
+          }
+          break;
+        }
       }
+
+      // If endpoint succeeded we already returned. Otherwise continue to next endpoint
+      if (endpointSucceeded) break;
     }
     
     // If all endpoints failed, return the last error
