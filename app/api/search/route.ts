@@ -251,11 +251,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ places: [] });
     }
 
-    // List of Overpass API endpoints for fallback (reordered by typical response time)
+    // List of Overpass API endpoints for fallback.
+    // Prefer the official Overpass API first, with other servers as backups.
     const overpassEndpoints = [
-      'https://overpass.kumi.systems/api/interpreter', // Usually fastest
-      'https://overpass-api.de/api/interpreter',       // Official but can be slower
-      'https://maps.mail.ru/osm/tools/overpass/api/interpreter' // Backup
+      { url: 'https://overpass-api.de/api/interpreter', timeoutMs: 30000, label: 'official' },
+      { url: 'https://maps.mail.ru/osm/tools/overpass/api/interpreter', timeoutMs: 30000, label: 'mailru' },
+      { url: 'https://overpass.kumi.systems/api/interpreter', timeoutMs: 45000, label: 'kumi' }
     ];
 
     let lastError: Error | null = null;
@@ -265,20 +266,20 @@ export async function POST(req: Request) {
     const maxAttempts = 3;
 
     for (const endpoint of overpassEndpoints) {
-      console.log(`Trying Overpass endpoint: ${endpoint}`);
+      console.log(`Trying Overpass endpoint: ${endpoint.url}`);
       let endpointSucceeded = false;
 
       for (let attempt = 1; attempt <= maxAttempts && !endpointSucceeded; attempt++) {
         try {
-          const resp = await fetch(endpoint, {
+          const resp = await fetch(endpoint.url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
-              'Accept': 'application/json',
+              'Accept': '*/*',
               'User-Agent': 'SmartLocations/1.0 (development)'
             },
             body: new URLSearchParams({ data: query }),
-            signal: AbortSignal.timeout(55000)
+            signal: AbortSignal.timeout(endpoint.timeoutMs)
           });
 
           if (!resp.ok) {
