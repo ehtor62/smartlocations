@@ -170,6 +170,25 @@ export default function Page() {
     }
   }, [user?.uid]);
 
+  // On first client load, try to center the map on the user's current location
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCenter({ lat: position.coords.latitude, lon: position.coords.longitude });
+        },
+        (error) => {
+          console.log('Initial geolocation unavailable, using default center:', error.message);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        }
+      );
+    }
+  }, []);
+
   // Handle live tracking
   useEffect(() => {
     if (liveTracking && 'geolocation' in navigator) {
